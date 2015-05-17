@@ -16,7 +16,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 public class ShoeboxController extends Controller {
 
 	public static Promise<Result> organize() {
-		return Promise.wrap(ask(Shoebox.INSTANCE.getShoeboxActor(), new OrganizeMessage(ShoeboxConfiguration.INSTANCE.getShoeboxPath()), 2000)).map(new Function<Object, Result>() {
+		return Promise.wrap(ask(Shoebox.INSTANCE.getShoeboxActor(), new OrganizeMessage(), 2000)).map(new Function<Object, Result>() {
 			public Result apply(Object response) {
 				if (response instanceof ResponseMessage) {
 					ResponseMessage responseMessage = (ResponseMessage) response;

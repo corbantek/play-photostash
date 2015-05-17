@@ -1,35 +1,24 @@
 package com.ctrengine.photostash.models;
 
-public class Story extends AbstractDocument {
+import java.io.File;
+
+import play.libs.Json;
+
+import com.fasterxml.jackson.databind.node.ObjectNode;
+
+public class Story extends AbstractFileDocument {
 	public static final String COLLECTION = "story";
 	public static final String PATH = "path";
-
-	private String path;
-	private String name;
+	
 	private String description;
 	private int size;
 	private int stashSize;
 
-	public Story(String path, String name, String description, int size, int stashSize) {
-		super();
-		this.path = path;
-		this.name = name;
-		this.description = description;
+	public Story(File storyFile, int size, int stashSize) {
+		super(storyFile);
+		this.description = "";
 		this.size = size;
 		this.stashSize = stashSize;
-	}
-
-	@Override
-	protected String getCollection() {
-		return COLLECTION;
-	}
-
-	public String getPath() {
-		return path;
-	}
-
-	public String getName() {
-		return name;
 	}
 
 	public String getDescription() {
@@ -43,4 +32,26 @@ public class Story extends AbstractDocument {
 	public long getStashSize() {
 		return stashSize;
 	}	
+	
+	@Override
+	protected String getCollection() {
+		return COLLECTION;
+	}
+	
+	@Override
+	public ObjectNode toJson() {
+		ObjectNode storyNode = Json.newObject();
+		storyNode.put("storyId", getKey());
+		storyNode.put("name", getName());
+		return storyNode;
+	}
+
+	@Override
+	public ObjectNode toJsonExtended() {
+		ObjectNode storyNodeExtended = toJson();
+		storyNodeExtended.put("description", getDescription());
+		storyNodeExtended.put("size", getSize());
+		storyNodeExtended.put("stashSize", getStashSize());
+		return storyNodeExtended;
+	}
 }

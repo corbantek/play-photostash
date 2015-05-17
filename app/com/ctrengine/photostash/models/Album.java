@@ -1,34 +1,43 @@
 package com.ctrengine.photostash.models;
 
-public class Album extends AbstractDocument {
-	public static final String COLLECTION = "album";
-	public static final String PATH = "path";
+import java.io.File;
 
-	private String path;
-	private String name;
+import play.libs.Json;
+
+import com.fasterxml.jackson.databind.node.ObjectNode;
+
+public class Album extends AbstractFileDocument {
+	public static final String COLLECTION = "album";
+
 	private String description;
 
-	public Album(String path, String name, String description) {
-		super();
-		this.path = path;
-		this.name = name;
-		this.description = description;
-	}
-
-	@Override
-	protected String getCollection() {
-		return COLLECTION;
-	}
-
-	public String getPath() {
-		return path;
-	}
-
-	public String getName() {
-		return name;
+	public Album(File albumFile) {
+		super(albumFile);
+		this.description = "";
 	}
 
 	public String getDescription() {
 		return description;
 	}
+	
+	@Override
+	protected String getCollection() {
+		return COLLECTION;
+	}
+
+	@Override
+	public ObjectNode toJson() {
+		ObjectNode albumNode = Json.newObject();
+		albumNode.put("albumId", getKey());
+		albumNode.put("name", getName());
+		return albumNode;
+	}
+
+	@Override
+	public ObjectNode toJsonExtended() {
+		ObjectNode albumNodeExtended = toJson();
+		albumNodeExtended.put("description", getDescription());
+		return albumNodeExtended;
+	}
+	
 }

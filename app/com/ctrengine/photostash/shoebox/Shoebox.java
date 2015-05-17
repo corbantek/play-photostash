@@ -22,12 +22,4 @@ public enum Shoebox {
 	public ActorRef getShoeboxActor(){
 		return shoeboxActor;
 	}
-	
-	static String generateActorName(File file){
-		if(file == null){
-			return UUID.randomUUID().toString();
-		}else{
-			return file.getName().replaceAll("\\s", "");
-		}
-	}
 }

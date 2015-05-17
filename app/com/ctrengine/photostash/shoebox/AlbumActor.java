@@ -15,6 +15,7 @@ import com.ctrengine.photostash.models.Album;
 import com.ctrengine.photostash.shoebox.ShoeboxMessages.OrganizeMessage;
 import com.ctrengine.photostash.shoebox.ShoeboxMessages.ResponseMessage;
 import com.ctrengine.photostash.shoebox.ShoeboxMessages.ResponseType;
+import com.ctrengine.photostash.util.PhotostashUtil;
 
 public class AlbumActor extends UntypedActor {
 	static Props props(final File albumDirectory) {
@@ -27,16 +28,18 @@ public class AlbumActor extends UntypedActor {
 			}
 		});
 	}
-	
+
 	private final Map<String, ActorRef> storyActors;
 
 	private final PhotostashDatabase database;
 	private final File albumDirectory;
+	private Album album;
 
-	private AlbumActor(final File albumDirectory) {
+	private AlbumActor(final File albumDirectory) throws ShoeboxException {
+		storyActors = new TreeMap<String, ActorRef>();
 		database = PhotostashDatabase.INSTANCE;
 		this.albumDirectory = albumDirectory;
-		storyActors = new TreeMap<String, ActorRef>();
+		verifyDatabaseEntry();
 	}
 
 	@Override
@@ -48,28 +51,37 @@ public class AlbumActor extends UntypedActor {
 		}
 	}
 
+	private void verifyDatabaseEntry() throws ShoeboxException {
+		/**
+		 * Verify album has a database entry
+		 */
+		try {
+			album = database.findAlbum(albumDirectory.getAbsolutePath());
+			if (album == null) {
+				/**
+				 * Create new Album Record
+				 */
+				album = new Album(albumDirectory);
+				album = database.createAlbum(album);
+			}
+		} catch (PhotostashDatabaseException e) {
+			final String message = "Unable to find/create album: '" + albumDirectory.getAbsolutePath() + "': " + e.getMessage();
+			Shoebox.LOGGER.error(message);
+			throw new ShoeboxException(message);
+		}
+	}
+
 	private void organize(OrganizeMessage organizeMessage) {
 		/**
 		 * First detect if another organize is running
 		 */
 
-		/**
-		 * Verify album has a database entry
-		 */
-		try {
-			Album album = database.findAlbum(albumDirectory.getAbsolutePath());
-			if (album == null) {
-				/**
-				 * Create new Album Record
-				 */
-				album = new Album(albumDirectory.getAbsolutePath(), albumDirectory.getName(), "");
-				album = database.createAlbum(album);
-			}
-			for (File story : albumDirectory.listFiles()) {
-				if (story.isDirectory()) {
-					Shoebox.LOGGER.info("Found Story: " + story.getAbsolutePath());
-					String actorName = Shoebox.generateActorName(story);
-					ActorRef storyActor = storyActors.get(actorName);
+		for (File story : albumDirectory.listFiles()) {
+			if (story.isDirectory()) {
+				Shoebox.LOGGER.info("Found Story: " + story.getAbsolutePath());
+				String actorName = PhotostashUtil.generateKeyFromFile(story);
+				ActorRef storyActor = storyActors.get(actorName);
+				try {
 					if (storyActor == null) {
 						/**
 						 * Create the Album actor if he doesn't exist anymore
@@ -78,10 +90,11 @@ public class AlbumActor extends UntypedActor {
 						storyActors.put(actorName, storyActor);
 					}
 					storyActor.tell(organizeMessage, getSelf());
+				} catch (Exception e) {
+					String message = "Unable to create actor: " + actorName + " - " + e.getMessage();
+					Shoebox.LOGGER.error(message);
 				}
 			}
-		} catch (PhotostashDatabaseException e) {
-			Shoebox.LOGGER.error("Unable to find/create album: '" + albumDirectory.getAbsolutePath() +"': "+e.getMessage());
 		}
 	}
 

@@ -28,11 +28,13 @@ public class StoryActor extends UntypedActor {
 	private final PhotostashDatabase database;
 	private final File storyDirectory;
 	private final Album album;
+	private Story story;
 
-	private StoryActor(final File storyDirectory, final Album album) {
+	private StoryActor(final File storyDirectory, final Album album) throws ShoeboxException {
 		database = PhotostashDatabase.INSTANCE;
 		this.storyDirectory = storyDirectory;
 		this.album = album;
+		verifyDatabaseEntry();
 	}
 
 	@Override
@@ -43,25 +45,34 @@ public class StoryActor extends UntypedActor {
 			unhandled(message);
 		}
 	}
+	
+	private void verifyDatabaseEntry() throws ShoeboxException {
+		/**
+		 * Verify story has a database entry
+		 */
+		try {
+			story = database.findStory(storyDirectory.getAbsolutePath());
+			if (story == null) {
+				/**
+				 * Create new Album Record
+				 */
+				story = new Story(storyDirectory, 0, 0);
+				story = database.createStory(story);
+				Shoebox.LOGGER.debug("Album: "+album+" Story:"+story);
+				database.linkAlbumToStory(album, story);
+			}
+		} catch (PhotostashDatabaseException e) {
+			final String message = "Unable to find/create/link story '" + storyDirectory.getAbsolutePath() + "': "+e.getMessage();
+			Shoebox.LOGGER.error(message);
+			throw new ShoeboxException(message);
+		}
+	}
 
 	private void organize(OrganizeMessage organizeMessage) {
 		/**
 		 * First detect if another organize is running
 		 */
 
-		/**
-		 * Verify album has a database entry
-		 */
-		try {
-			Story story = database.findStory(storyDirectory.getAbsolutePath());
-			if (story == null) {
-				/**
-				 * Create new Album Record
-				 */
-				story = new Story(storyDirectory.getAbsolutePath(), storyDirectory.getName(), "", 0, 0);
-				story = database.createStory(story);
-				database.linkAlbumToStory(album, story);
-			}
 //			for (File story : albumDirectory.listFiles()) {
 //				if (story.isDirectory()) {
 //					Shoebox.LOGGER.info("Found Photograph: " + story.getAbsolutePath());
@@ -77,9 +88,6 @@ public class StoryActor extends UntypedActor {
 //					storyActor.tell(organizeMessage, getSelf());
 //				}
 //			}
-		} catch (PhotostashDatabaseException e) {
-			Shoebox.LOGGER.error("Unable to find/create/link story '" + storyDirectory.getAbsolutePath() + "': "+e.getMessage());
-		}
 	}
 
 }

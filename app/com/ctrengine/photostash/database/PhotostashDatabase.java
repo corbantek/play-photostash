@@ -12,6 +12,7 @@ import com.arangodb.ArangoConfigure;
 import com.arangodb.ArangoDriver;
 import com.arangodb.ArangoException;
 import com.arangodb.ArangoHost;
+import com.arangodb.EdgeCursor;
 import com.arangodb.entity.CollectionEntity;
 import com.arangodb.entity.CollectionOptions;
 import com.arangodb.entity.CollectionType;
@@ -23,7 +24,9 @@ import com.arangodb.entity.StringsResultEntity;
 import com.arangodb.util.AqlQueryOptions;
 import com.arangodb.util.MapBuilder;
 import com.ctrengine.photostash.conf.DatabaseConfiguration;
+import com.ctrengine.photostash.models.AbstractDocument;
 import com.ctrengine.photostash.models.Album;
+import com.ctrengine.photostash.models.EdgeDocument;
 import com.ctrengine.photostash.models.Story;
 
 public enum PhotostashDatabase {
@@ -107,7 +110,7 @@ public enum PhotostashDatabase {
 			 */
 			if(!collections.contains(Story.COLLECTION)){
 				photostashArangoDriver.createCollection(Story.COLLECTION);
-				//photostashArangoDriver.createIndex(Album.COLLECTION, IndexType.HASH, true, Album.PATH);
+				photostashArangoDriver.createIndex(Story.COLLECTION, IndexType.HASH, true, Story.PATH);
 			}
 			
 			/**
@@ -135,11 +138,20 @@ public enum PhotostashDatabase {
 			throw new PhotostashDatabaseException(e);
 		}
 	}
+	
+	public Album getAlbum(String albumId) throws PhotostashDatabaseException {
+		verifyDatabaseDriver();
+		try {
+			return photostashArangoDriver.getDocument(Album.COLLECTION, albumId, Album.class).getEntity();
+		} catch (ArangoException e) {
+			throw new PhotostashDatabaseException(e);
+		}	
+	}
 
 	public Album findAlbum(String path) throws PhotostashDatabaseException {
 		verifyDatabaseDriver();
 		try {
-			Map<String, Object> bindVars = new MapBuilder().put("path", path).get();
+			Map<String, Object> bindVars = new MapBuilder().put(Album.PATH, path).get();
 			List<Album> albums = photostashArangoDriver.executeDocumentQuery(QUERY_ALBUM, bindVars, photostashArangoDriver.getDefaultAqlQueryOptions(), Album.class).asEntityList();
 			if(albums.size() > 0){
 				return albums.get(0);
@@ -154,22 +166,40 @@ public enum PhotostashDatabase {
 	public Album createAlbum(Album album) throws PhotostashDatabaseException {
 		verifyDatabaseDriver();
 		try {
-			DocumentEntity<Album> albumEntity = photostashArangoDriver.createDocument(Album.COLLECTION, album, true, true);
-			/**
-			 * Bug in ArangoDB Driver, not storing the key on insert
-			 */
-			album = albumEntity.getEntity();
-			album.setKey(albumEntity.getDocumentKey());
-			return album;
+			return photostashArangoDriver.createDocument(Album.COLLECTION, album, true, true).getEntity();
 		} catch (ArangoException e) {
 			throw new PhotostashDatabaseException(e);
 		}
+	}
+	
+	public List<Story> getStories(final Album album) throws PhotostashDatabaseException {
+		verifyDatabaseDriver();
+		try {
+			EdgeCursor<EdgeDocument> edgeCursor = photostashArangoDriver.graphGetEdgeCursorByExample(GRAPH_ALBUM_STORY, EdgeDocument.class, new EdgeDocument(album));
+			LOGGER.debug("Edge Size: "+edgeCursor.getCount());
+			for(EdgeDocument edgeDocument: edgeCursor.asEntityList()){
+				LOGGER.debug("Edges: "+edgeDocument.toString());
+			}
+			return new LinkedList<Story>();
+			//return photostashArangoDriver.executeSimpleAllDocuments(Album.COLLECTION, 0, 0, Album.class).asEntityList();
+		} catch (ArangoException e) {
+			throw new PhotostashDatabaseException(e);
+		}
+	}
+	
+	public Story getStory(String storyId) throws PhotostashDatabaseException {
+		verifyDatabaseDriver();
+		try {
+			return photostashArangoDriver.getDocument(Story.COLLECTION, storyId, Story.class).getEntity();
+		} catch (ArangoException e) {
+			throw new PhotostashDatabaseException(e);
+		}	
 	}
 
 	public Story findStory(String path) throws PhotostashDatabaseException {
 		verifyDatabaseDriver();
 		try {
-			Map<String, Object> bindVars = new MapBuilder().put("path", path).get();
+			Map<String, Object> bindVars = new MapBuilder().put(Story.PATH, path).get();
 			List<Story> stories = photostashArangoDriver.executeDocumentQuery(QUERY_STORY, bindVars, photostashArangoDriver.getDefaultAqlQueryOptions(), Story.class).asEntityList();
 			if(stories.size() > 0){
 				return stories.get(0);
@@ -185,13 +215,7 @@ public enum PhotostashDatabase {
 	public Story createStory(Story story) throws PhotostashDatabaseException {
 		verifyDatabaseDriver();
 		try {
-			DocumentEntity<Story> storyEntity = photostashArangoDriver.createDocument(Story.COLLECTION, story);
-			/**
-			 * Bug in ArangoDB Driver, not storing the key on insert
-			 */
-			story = storyEntity.getEntity();
-			story.setKey(storyEntity.getDocumentKey());
-			return story;
+			return photostashArangoDriver.createDocument(Story.COLLECTION, story).getEntity();
 		} catch (ArangoException e) {
 			throw new PhotostashDatabaseException(e);
 		}

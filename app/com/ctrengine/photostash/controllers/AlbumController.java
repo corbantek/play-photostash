@@ -17,15 +17,26 @@ public class AlbumController extends Controller {
 		ArrayNode albums = Json.newObject().arrayNode();
 		try {
 			for (Album album : PhotostashDatabase.INSTANCE.getAlbums()) {
-				ObjectNode albumNode = Json.newObject();
-				albumNode.put("albumId", album.getKey());
-				albumNode.put("name", album.getName());
-				if (extended) {
-					albumNode.put("description", album.getDescription());
-				}
-				albums.add(albumNode);
+				albums.add(album.toJson(extended));
 			}
 			return ok(albums);
+		} catch (PhotostashDatabaseException e) {
+			return internalServerError(Json.newObject().put("message", e.getMessage()));
+		}
+	}
+	
+	public static Result getAlbum(String albumId, Boolean extended) {
+		try {
+			Album album = PhotostashDatabase.INSTANCE.getAlbum(albumId);
+			if(album == null){
+				return badRequest(Json.newObject().put("message", albumId+" not found."));
+			}else{
+				/**
+				 * Get the stories associated with this Album
+				 */
+				PhotostashDatabase.INSTANCE.getStories(album);
+				return ok(album.toJson(extended));
+			}
 		} catch (PhotostashDatabaseException e) {
 			return internalServerError(Json.newObject().put("message", e.getMessage()));
 		}
