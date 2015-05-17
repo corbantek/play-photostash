@@ -2,10 +2,26 @@
 # This file defines all application routes (Higher priority routes first)
 # ~~~~
 
-# Home page
-GET        /                    controllers.Application.index
-
 # Map static resources from the /public folder to the /assets URL path
-GET        /assets/*file        controllers.Assets.at(path="/public", file)
+GET		/assets/*file			controllers.Assets.at(path="/public", file)
+
+# Photostash API
+POST		/v1/api/shoebox/organize													com.ctrengine.photostash.controllers.ShoeboxController.organize()
+#POST		/v1/api/shoebox/tidy/:albumId/:storyId
+#POST		/v1/api/shoebox/tidy/:albumId
+#POST		/v1/api/shoebox/tidy
+#POST		/v1/api/shoebox/clean/:albumId/:storyId
+#POST		/v1/api/shoebox/clean/:albumId
+#POST		/v1/api/shoebox/clean 
+
+#GET		/v1/api/album/:albumId/story/:storyId/photo/:photoId/resize/:squareLength
+#GET		/v1/api/album/:albumId/story/:storyId/photo/:photoId
+#GET		/v1/api/album/:albumId/story/:storyId/photo
+#GET		/v1/api/album/:albumId/story/:storyId
+#GET		/v1/api/album/:albumId/story
+#GET		/v1/api/album/:albumId
+GET		/v1/api/album																	com.ctrengine.photostash.controllers.AlbumController.getAlbums(extended: Boolean ?= false)
+
+# Photostash UI 
 
     
