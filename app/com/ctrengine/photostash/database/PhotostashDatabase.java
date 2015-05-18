@@ -12,21 +12,15 @@ import com.arangodb.ArangoConfigure;
 import com.arangodb.ArangoDriver;
 import com.arangodb.ArangoException;
 import com.arangodb.ArangoHost;
-import com.arangodb.EdgeCursor;
 import com.arangodb.entity.CollectionEntity;
 import com.arangodb.entity.CollectionOptions;
 import com.arangodb.entity.CollectionType;
-import com.arangodb.entity.DocumentEntity;
 import com.arangodb.entity.EdgeDefinitionEntity;
-import com.arangodb.entity.GraphEntity;
 import com.arangodb.entity.IndexType;
 import com.arangodb.entity.StringsResultEntity;
-import com.arangodb.util.AqlQueryOptions;
 import com.arangodb.util.MapBuilder;
 import com.ctrengine.photostash.conf.DatabaseConfiguration;
-import com.ctrengine.photostash.models.AbstractDocument;
 import com.ctrengine.photostash.models.Album;
-import com.ctrengine.photostash.models.EdgeDocument;
 import com.ctrengine.photostash.models.Story;
 
 public enum PhotostashDatabase {
@@ -34,10 +28,11 @@ public enum PhotostashDatabase {
 
 	private static final ALogger LOGGER = Logger.of("database");
 	
-	private static final String GRAPH_ALBUM_STORY = "album-story";
+	private static final String ALBUM_RELATIONS_COLLECTION = "albumrelations";
 	
 	private static final String QUERY_ALBUM = "FOR a IN "+Album.COLLECTION+" FILTER a."+Album.PATH+" == @path RETURN a";
 	private static final String QUERY_STORY = "FOR a IN "+Story.COLLECTION+" FILTER a."+Story.PATH+" == @path RETURN a";
+	private static final String QUERY_ALBUM_TO_STORY = "FOR a in NEIGHBORS("+Album.COLLECTION+", "+ALBUM_RELATIONS_COLLECTION+", @id, 'outbound') RETURN a.vertex";
 
 	private ArangoDriver photostashArangoDriver;
 	private boolean genesisComplete;
@@ -113,15 +108,13 @@ public enum PhotostashDatabase {
 				photostashArangoDriver.createIndex(Story.COLLECTION, IndexType.HASH, true, Story.PATH);
 			}
 			
+			CollectionOptions edgeCollectionOptions = new CollectionOptions();
+			edgeCollectionOptions.setType(CollectionType.EDGE);
 			/**
 			 * Create Album->Story Graph/Edge
 			 */
-			if(!collections.contains(GRAPH_ALBUM_STORY)){
-				EdgeDefinitionEntity edgeDefinitionEntity = new EdgeDefinitionEntity();
-				edgeDefinitionEntity.setCollection(GRAPH_ALBUM_STORY);
-				edgeDefinitionEntity.setFrom(Arrays.asList(Album.COLLECTION));
-				edgeDefinitionEntity.setTo(Arrays.asList(Story.COLLECTION));
-				photostashArangoDriver.createGraph(GRAPH_ALBUM_STORY, Arrays.asList(edgeDefinitionEntity), new LinkedList<String>(), true);
+			if(!collections.contains(ALBUM_RELATIONS_COLLECTION)){
+				photostashArangoDriver.createCollection(ALBUM_RELATIONS_COLLECTION, edgeCollectionOptions);
 			}
 			genesisComplete = true;
 		} catch (ArangoException e) {
@@ -151,7 +144,7 @@ public enum PhotostashDatabase {
 	public Album findAlbum(String path) throws PhotostashDatabaseException {
 		verifyDatabaseDriver();
 		try {
-			Map<String, Object> bindVars = new MapBuilder().put(Album.PATH, path).get();
+			Map<String, Object> bindVars = new MapBuilder().put("path", path).get();
 			List<Album> albums = photostashArangoDriver.executeDocumentQuery(QUERY_ALBUM, bindVars, photostashArangoDriver.getDefaultAqlQueryOptions(), Album.class).asEntityList();
 			if(albums.size() > 0){
 				return albums.get(0);
@@ -172,18 +165,23 @@ public enum PhotostashDatabase {
 		}
 	}
 	
+	public List<Story> getStories() throws PhotostashDatabaseException {
+		verifyDatabaseDriver();
+		
+		try {
+			return photostashArangoDriver.executeSimpleAllDocuments(Story.COLLECTION, 0, 0, Story.class).asEntityList();
+		} catch (ArangoException e) {
+			throw new PhotostashDatabaseException(e);
+		}
+	}
+	
 	public List<Story> getStories(final Album album) throws PhotostashDatabaseException {
 		verifyDatabaseDriver();
 		try {
-			EdgeCursor<EdgeDocument> edgeCursor = photostashArangoDriver.graphGetEdgeCursorByExample(GRAPH_ALBUM_STORY, EdgeDocument.class, new EdgeDocument(album));
-			LOGGER.debug("Edge Size: "+edgeCursor.getCount());
-			for(EdgeDocument edgeDocument: edgeCursor.asEntityList()){
-				LOGGER.debug("Edges: "+edgeDocument.toString());
-			}
-			return new LinkedList<Story>();
-			//return photostashArangoDriver.executeSimpleAllDocuments(Album.COLLECTION, 0, 0, Album.class).asEntityList();
+			Map<String, Object> bindVars = new MapBuilder().put("id", album.getDocumentAddress()).get();
+			return photostashArangoDriver.executeDocumentQuery(QUERY_ALBUM_TO_STORY, bindVars, photostashArangoDriver.getDefaultAqlQueryOptions(), Story.class).asEntityList();
 		} catch (ArangoException e) {
-			throw new PhotostashDatabaseException(e);
+			throw new PhotostashDatabaseException(QUERY_ALBUM_TO_STORY+" "+e);
 		}
 	}
 	
@@ -199,7 +197,7 @@ public enum PhotostashDatabase {
 	public Story findStory(String path) throws PhotostashDatabaseException {
 		verifyDatabaseDriver();
 		try {
-			Map<String, Object> bindVars = new MapBuilder().put(Story.PATH, path).get();
+			Map<String, Object> bindVars = new MapBuilder().put("path", path).get();
 			List<Story> stories = photostashArangoDriver.executeDocumentQuery(QUERY_STORY, bindVars, photostashArangoDriver.getDefaultAqlQueryOptions(), Story.class).asEntityList();
 			if(stories.size() > 0){
 				return stories.get(0);
@@ -221,11 +219,11 @@ public enum PhotostashDatabase {
 		}
 	}
 
-	public void linkAlbumToStory(Album album, Story story) throws PhotostashDatabaseException {
+	public void relateAlbumToStory(Album album, Story story) throws PhotostashDatabaseException {
 		verifyDatabaseDriver();
 		try {
-			LOGGER.debug(GRAPH_ALBUM_STORY+": "+album.getDocumentAddress()+" -> "+story.getDocumentAddress());
-			photostashArangoDriver.graphCreateEdge(GRAPH_ALBUM_STORY, GRAPH_ALBUM_STORY, null, album.getDocumentAddress(), story.getDocumentAddress());
+			LOGGER.debug(ALBUM_RELATIONS_COLLECTION+": "+album.getDocumentAddress()+" -> "+story.getDocumentAddress());
+			photostashArangoDriver.createEdge(DatabaseConfiguration.INSTANCE.getDatabase(), ALBUM_RELATIONS_COLLECTION, new Object(), album.getDocumentAddress(), story.getDocumentAddress(), false, false);
 		} catch (ArangoException e) {
 			throw new PhotostashDatabaseException(e);
 		}

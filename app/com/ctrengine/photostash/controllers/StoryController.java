@@ -11,35 +11,34 @@ import com.ctrengine.photostash.models.Story;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
-public class AlbumController extends Controller {
-
-	public static Result getAlbums(Boolean extended) {
-		ArrayNode albumsNode = Json.newObject().arrayNode();
+public class StoryController extends Controller {
+	public static Result getStories(Boolean extended) {
 		try {
-			for (Album album : PhotostashDatabase.INSTANCE.getAlbums()) {
-				albumsNode.add(album.toJson(extended));
+			ArrayNode storysNode = Json.newObject().arrayNode();
+			for (Story story : PhotostashDatabase.INSTANCE.getStories()) {
+				storysNode.add(story.toJson(extended));
 			}
-			return ok(albumsNode);
+			return ok(storysNode);
 		} catch (PhotostashDatabaseException e) {
 			return internalServerError(Json.newObject().put("message", e.getMessage()));
 		}
 	}
-	
-	public static Result getAlbum(String albumId, Boolean extended) {
+
+	public static Result getStory(String storyId, Boolean extended) {
 		try {
-			Album album = PhotostashDatabase.INSTANCE.getAlbum(albumId);
-			if(album == null){
-				return badRequest(Json.newObject().put("message", albumId+" not found."));
+			Story story = PhotostashDatabase.INSTANCE.getStory(storyId);
+			if(story == null){
+				return badRequest(Json.newObject().put("message", storyId+" not found."));
 			}else{
-				ObjectNode albumNode = album.toJson(extended);
-				ArrayNode storysNode = albumNode.arrayNode();
+				ObjectNode albumNode = story.toJson(extended);
+				//ArrayNode storysNode = albumNode.arrayNode();
 				/**
 				 * Get the stories associated with this Album
 				 */
-				for(Story story: PhotostashDatabase.INSTANCE.getStories(album)){
-					storysNode.add(story.toJson(extended));
-				}
-				albumNode.put("stories", storysNode);
+				//for(Story story: PhotostashDatabase.INSTANCE.getStories(album)){
+				//	storysNode.add(story.toJson(extended));
+				//}
+				//albumNode.put("photographs", storysNode);
 				return ok(albumNode);
 			}
 		} catch (PhotostashDatabaseException e) {

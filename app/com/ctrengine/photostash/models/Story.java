@@ -7,7 +7,7 @@ import play.libs.Json;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 public class Story extends AbstractFileDocument {
-	public static final String COLLECTION = "story";
+	public static final String COLLECTION = "storys";
 	public static final String PATH = "path";
 	
 	private String description;

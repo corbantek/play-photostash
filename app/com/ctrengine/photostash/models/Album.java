@@ -7,7 +7,7 @@ import play.libs.Json;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 public class Album extends AbstractFileDocument {
-	public static final String COLLECTION = "album";
+	public static final String COLLECTION = "albums";
 
 	private String description;
 

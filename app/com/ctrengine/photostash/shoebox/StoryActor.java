@@ -59,7 +59,7 @@ public class StoryActor extends UntypedActor {
 				story = new Story(storyDirectory, 0, 0);
 				story = database.createStory(story);
 				Shoebox.LOGGER.debug("Album: "+album+" Story:"+story);
-				database.linkAlbumToStory(album, story);
+				database.relateAlbumToStory(album, story);
 			}
 		} catch (PhotostashDatabaseException e) {
 			final String message = "Unable to find/create/link story '" + storyDirectory.getAbsolutePath() + "': "+e.getMessage();
