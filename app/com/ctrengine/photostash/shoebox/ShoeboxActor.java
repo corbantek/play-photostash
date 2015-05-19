@@ -6,10 +6,13 @@ import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.UntypedActor;
 import akka.japi.Creator;
+import akka.routing.SmallestMailboxPool;
 
 import com.ctrengine.photostash.conf.ShoeboxConfiguration;
 import com.ctrengine.photostash.shoebox.ShoeboxMessages.InitializeMessage;
 import com.ctrengine.photostash.shoebox.ShoeboxMessages.OrganizeMessage;
+import com.ctrengine.photostash.shoebox.ShoeboxMessages.PhotographRequestMessage;
+import com.ctrengine.photostash.shoebox.ShoeboxMessages.PhotographResizeRequestMessage;
 import com.ctrengine.photostash.shoebox.ShoeboxMessages.ResponseMessage;
 import com.ctrengine.photostash.shoebox.ShoeboxMessages.ResponseType;
 import com.ctrengine.photostash.util.PhotostashUtil;
@@ -25,13 +28,18 @@ public class ShoeboxActor extends UntypedActor {
 			}
 		});
 	}
+	
+	ActorRef photographRouter;
 
 	private ShoeboxActor() {
+		photographRouter = getContext().actorOf(new SmallestMailboxPool(10).props(Props.create(PhotographActor.class)), "photograph-router");
 	}
 
 	@Override
 	public void onReceive(Object message) throws Exception {
-		if (message instanceof OrganizeMessage) {
+		if (message instanceof PhotographRequestMessage || message instanceof PhotographResizeRequestMessage) {
+			photographRouter.tell(message, getSender());
+		}else if (message instanceof OrganizeMessage) {
 			organize((OrganizeMessage) message);
 		} else {
 			unhandled(message);

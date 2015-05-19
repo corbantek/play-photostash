@@ -7,7 +7,6 @@ import play.libs.Json;
 import play.mvc.Controller;
 import play.mvc.Result;
 
-import com.ctrengine.photostash.conf.ShoeboxConfiguration;
 import com.ctrengine.photostash.shoebox.Shoebox;
 import com.ctrengine.photostash.shoebox.ShoeboxMessages.OrganizeMessage;
 import com.ctrengine.photostash.shoebox.ShoeboxMessages.ResponseMessage;
