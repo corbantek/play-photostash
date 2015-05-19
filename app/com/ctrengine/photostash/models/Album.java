@@ -6,8 +6,9 @@ import play.libs.Json;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
-public class Album extends AbstractFileDocument {
+public class Album extends AbstractFileDocument implements RelateDocument {
 	public static final String COLLECTION = "albums";
+	public static final String RELATE_COLLECTION = "albumrelations";
 
 	private String description;
 
@@ -19,9 +20,14 @@ public class Album extends AbstractFileDocument {
 	public String getDescription() {
 		return description;
 	}
-	
+		
 	@Override
-	protected String getCollection() {
+	public String getRelateCollection() {
+		return RELATE_COLLECTION;
+	}
+
+	@Override
+	public String getCollection() {
 		return COLLECTION;
 	}
 

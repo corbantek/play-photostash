@@ -8,7 +8,6 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 
 public class Story extends AbstractFileDocument {
 	public static final String COLLECTION = "storys";
-	public static final String PATH = "path";
 	
 	private String description;
 	private int size;
@@ -34,7 +33,7 @@ public class Story extends AbstractFileDocument {
 	}	
 	
 	@Override
-	protected String getCollection() {
+	public String getCollection() {
 		return COLLECTION;
 	}
 	

@@ -20,19 +20,18 @@ import com.arangodb.entity.IndexType;
 import com.arangodb.entity.StringsResultEntity;
 import com.arangodb.util.MapBuilder;
 import com.ctrengine.photostash.conf.DatabaseConfiguration;
+import com.ctrengine.photostash.models.AbstractFileDocument;
 import com.ctrengine.photostash.models.Album;
+import com.ctrengine.photostash.models.Document;
+import com.ctrengine.photostash.models.RelateDocument;
 import com.ctrengine.photostash.models.Story;
 
 public enum PhotostashDatabase {
 	INSTANCE;
 
 	private static final ALogger LOGGER = Logger.of("database");
-	
-	private static final String ALBUM_RELATIONS_COLLECTION = "albumrelations";
-	
-	private static final String QUERY_ALBUM = "FOR a IN "+Album.COLLECTION+" FILTER a."+Album.PATH+" == @path RETURN a";
-	private static final String QUERY_STORY = "FOR a IN "+Story.COLLECTION+" FILTER a."+Story.PATH+" == @path RETURN a";
-	private static final String QUERY_ALBUM_TO_STORY = "FOR a in NEIGHBORS("+Album.COLLECTION+", "+ALBUM_RELATIONS_COLLECTION+", @id, 'outbound') RETURN a.vertex";
+
+	private static final String QUERY_PATH = "FOR a IN @collection FILTER a." + AbstractFileDocument.PATH + " == @path RETURN a";
 
 	private ArangoDriver photostashArangoDriver;
 	private boolean genesisComplete;
@@ -51,14 +50,14 @@ public enum PhotostashDatabase {
 				/**
 				 * Database creation failure
 				 */
-				throw new PhotostashDatabaseException("ERROR: Could not connect to database: "+DatabaseConfiguration.INSTANCE.toString());
+				throw new PhotostashDatabaseException("ERROR: Could not connect to database: " + DatabaseConfiguration.INSTANCE.toString());
 			} else {
 				if (!genesisComplete) {
 					/**
 					 * Need to perform Genesis
 					 */
 					genesisDatabase();
-					if(!genesisComplete){
+					if (!genesisComplete) {
 						throw new PhotostashDatabaseException("ERROR: Could not create default Photostash database architecture.");
 					}
 				}
@@ -90,140 +89,120 @@ public enum PhotostashDatabase {
 			 * Get List of Collections
 			 */
 			List<String> collections = new LinkedList<String>();
-			for(CollectionEntity collectionEntity: photostashArangoDriver.getCollections(true).getCollections()){
+			for (CollectionEntity collectionEntity : photostashArangoDriver.getCollections(true).getCollections()) {
 				collections.add(collectionEntity.getName());
 			}
 			/**
 			 * Create Album Collection
 			 */
-			if(!collections.contains(Album.COLLECTION)){
+			if (!collections.contains(Album.COLLECTION)) {
 				photostashArangoDriver.createCollection(Album.COLLECTION);
 				photostashArangoDriver.createIndex(Album.COLLECTION, IndexType.HASH, true, Album.PATH);
 			}
 			/**
 			 * Create Story Collection
 			 */
-			if(!collections.contains(Story.COLLECTION)){
+			if (!collections.contains(Story.COLLECTION)) {
 				photostashArangoDriver.createCollection(Story.COLLECTION);
 				photostashArangoDriver.createIndex(Story.COLLECTION, IndexType.HASH, true, Story.PATH);
 			}
-			
+
 			CollectionOptions edgeCollectionOptions = new CollectionOptions();
 			edgeCollectionOptions.setType(CollectionType.EDGE);
 			/**
 			 * Create Album->Story Graph/Edge
 			 */
-			if(!collections.contains(ALBUM_RELATIONS_COLLECTION)){
-				photostashArangoDriver.createCollection(ALBUM_RELATIONS_COLLECTION, edgeCollectionOptions);
+			if (!collections.contains(Album.RELATE_COLLECTION)) {
+				photostashArangoDriver.createCollection(Album.RELATE_COLLECTION, edgeCollectionOptions);
 			}
 			genesisComplete = true;
 		} catch (ArangoException e) {
 			LOGGER.error("Photostash Database Genesis Failure: " + e);
 		}
 	}
-	
+
 	public List<Album> getAlbums() throws PhotostashDatabaseException {
-		verifyDatabaseDriver();
-		
-		try {
-			return photostashArangoDriver.executeSimpleAllDocuments(Album.COLLECTION, 0, 0, Album.class).asEntityList();
-		} catch (ArangoException e) {
-			throw new PhotostashDatabaseException(e);
-		}
+		return getDocuments(Album.COLLECTION, Album.class);
 	}
-	
+
 	public Album getAlbum(String albumId) throws PhotostashDatabaseException {
-		verifyDatabaseDriver();
-		try {
-			return photostashArangoDriver.getDocument(Album.COLLECTION, albumId, Album.class).getEntity();
-		} catch (ArangoException e) {
-			throw new PhotostashDatabaseException(e);
-		}	
+		return getDocument(Album.COLLECTION, albumId, Album.class);
 	}
 
 	public Album findAlbum(String path) throws PhotostashDatabaseException {
-		verifyDatabaseDriver();
-		try {
-			Map<String, Object> bindVars = new MapBuilder().put("path", path).get();
-			List<Album> albums = photostashArangoDriver.executeDocumentQuery(QUERY_ALBUM, bindVars, photostashArangoDriver.getDefaultAqlQueryOptions(), Album.class).asEntityList();
-			if(albums.size() > 0){
-				return albums.get(0);
-			}else{
-				return null;
-			}
-		} catch (ArangoException e) {
-			throw new PhotostashDatabaseException(e);
-		}	
+		return findPathDocument(Album.COLLECTION, path, Album.class);
 	}
 
-	public Album createAlbum(Album album) throws PhotostashDatabaseException {
-		verifyDatabaseDriver();
-		try {
-			return photostashArangoDriver.createDocument(Album.COLLECTION, album, true, true).getEntity();
-		} catch (ArangoException e) {
-			throw new PhotostashDatabaseException(e);
-		}
+	public Story getStory(String storyId) throws PhotostashDatabaseException {
+		return getDocument(Story.COLLECTION, storyId, Story.class);
 	}
 	
 	public List<Story> getStories() throws PhotostashDatabaseException {
-		verifyDatabaseDriver();
-		
-		try {
-			return photostashArangoDriver.executeSimpleAllDocuments(Story.COLLECTION, 0, 0, Story.class).asEntityList();
-		} catch (ArangoException e) {
-			throw new PhotostashDatabaseException(e);
-		}
-	}
-	
-	public List<Story> getStories(final Album album) throws PhotostashDatabaseException {
-		verifyDatabaseDriver();
-		try {
-			Map<String, Object> bindVars = new MapBuilder().put("id", album.getDocumentAddress()).get();
-			return photostashArangoDriver.executeDocumentQuery(QUERY_ALBUM_TO_STORY, bindVars, photostashArangoDriver.getDefaultAqlQueryOptions(), Story.class).asEntityList();
-		} catch (ArangoException e) {
-			throw new PhotostashDatabaseException(QUERY_ALBUM_TO_STORY+" "+e);
-		}
-	}
-	
-	public Story getStory(String storyId) throws PhotostashDatabaseException {
-		verifyDatabaseDriver();
-		try {
-			return photostashArangoDriver.getDocument(Story.COLLECTION, storyId, Story.class).getEntity();
-		} catch (ArangoException e) {
-			throw new PhotostashDatabaseException(e);
-		}	
+		return getDocuments(Story.COLLECTION, Story.class);
 	}
 
 	public Story findStory(String path) throws PhotostashDatabaseException {
+		return findPathDocument(Story.COLLECTION, path, Story.class);
+	}	
+
+	public <R extends RelateDocument, D extends Document> List<D> getRelatedDocuments(R relateDocument, Class<D> clazz) throws PhotostashDatabaseException {
+		verifyDatabaseDriver();
+		final String QUERY_RELATE = "FOR a in NEIGHBORS(" + relateDocument.getCollection() + ", " + relateDocument.getRelateCollection() + ", @id, 'outbound') RETURN a.vertex";
+		try {
+			Map<String, Object> bindVars = new MapBuilder().put("id", relateDocument.getDocumentAddress()).get();
+			return photostashArangoDriver.executeDocumentQuery(QUERY_RELATE, bindVars, photostashArangoDriver.getDefaultAqlQueryOptions(), clazz).asEntityList();
+		} catch (ArangoException e) {
+			throw new PhotostashDatabaseException(QUERY_RELATE + " " + e);
+		}
+	}
+
+	public <D extends Document> D createDocument(D document) throws PhotostashDatabaseException {
 		verifyDatabaseDriver();
 		try {
-			Map<String, Object> bindVars = new MapBuilder().put("path", path).get();
-			List<Story> stories = photostashArangoDriver.executeDocumentQuery(QUERY_STORY, bindVars, photostashArangoDriver.getDefaultAqlQueryOptions(), Story.class).asEntityList();
-			if(stories.size() > 0){
-				return stories.get(0);
-			}else{
+			return photostashArangoDriver.createDocument(document.getCollection(), document).getEntity();
+		} catch (ArangoException e) {
+			throw new PhotostashDatabaseException(e);
+		}
+	}
+
+	public <R extends RelateDocument, D extends Document> void relateDocumentToDocument(R relateDocument, D document) throws PhotostashDatabaseException {
+		verifyDatabaseDriver();
+		try {
+			LOGGER.debug(relateDocument.getRelateCollection() + ": " + relateDocument.getDocumentAddress() + " -> " + document.getDocumentAddress());
+			photostashArangoDriver.createEdge(DatabaseConfiguration.INSTANCE.getDatabase(), relateDocument.getRelateCollection(), new Object(), relateDocument.getDocumentAddress(), document.getDocumentAddress(), false, false);
+		} catch (ArangoException e) {
+			throw new PhotostashDatabaseException(e);
+		}
+	}
+	
+	private <D extends Document> List<D> getDocuments(String collection, Class<D> clazz) throws PhotostashDatabaseException {
+		verifyDatabaseDriver();
+		try {
+			return photostashArangoDriver.executeSimpleAllDocuments(collection, 0, 0, clazz).asEntityList();
+		} catch (ArangoException e) {
+			throw new PhotostashDatabaseException(e);
+		}
+	}
+
+	private <D extends AbstractFileDocument> D findPathDocument(String collection, String path, Class<D> clazz) throws PhotostashDatabaseException {
+		verifyDatabaseDriver();
+		try {
+			Map<String, Object> bindVars = new MapBuilder().put("collection", collection).put("path", path).get();
+			List<D> documents = photostashArangoDriver.executeDocumentQuery(QUERY_PATH, bindVars, photostashArangoDriver.getDefaultAqlQueryOptions(), clazz).asEntityList();
+			if (documents.size() > 0) {
+				return documents.get(0);
+			} else {
 				return null;
 			}
 		} catch (ArangoException e) {
 			throw new PhotostashDatabaseException(e);
 		}
-		
 	}
 
-	public Story createStory(Story story) throws PhotostashDatabaseException {
+	private <D extends Document> D getDocument(String collection, String id, Class<D> clazz) throws PhotostashDatabaseException {
 		verifyDatabaseDriver();
 		try {
-			return photostashArangoDriver.createDocument(Story.COLLECTION, story).getEntity();
-		} catch (ArangoException e) {
-			throw new PhotostashDatabaseException(e);
-		}
-	}
-
-	public void relateAlbumToStory(Album album, Story story) throws PhotostashDatabaseException {
-		verifyDatabaseDriver();
-		try {
-			LOGGER.debug(ALBUM_RELATIONS_COLLECTION+": "+album.getDocumentAddress()+" -> "+story.getDocumentAddress());
-			photostashArangoDriver.createEdge(DatabaseConfiguration.INSTANCE.getDatabase(), ALBUM_RELATIONS_COLLECTION, new Object(), album.getDocumentAddress(), story.getDocumentAddress(), false, false);
+			return photostashArangoDriver.getDocument(collection, id, clazz).getEntity();
 		} catch (ArangoException e) {
 			throw new PhotostashDatabaseException(e);
 		}

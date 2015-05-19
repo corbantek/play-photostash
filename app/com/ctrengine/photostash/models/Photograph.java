@@ -34,7 +34,7 @@ public class Photograph extends AbstractFileDocument {
 	}
 	
 	@Override
-	protected String getCollection() {
+	public String getCollection() {
 		return COLLECTION;
 	}
 	

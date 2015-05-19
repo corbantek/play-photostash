@@ -17,7 +17,7 @@ public class AlbumController extends Controller {
 		ArrayNode albumsNode = Json.newObject().arrayNode();
 		try {
 			for (Album album : PhotostashDatabase.INSTANCE.getAlbums()) {
-				albumsNode.add(album.toJson(extended));
+				albumsNode.add(album.toJson(extended).put("link", routes.AlbumController.getAlbum(album.getKey(), extended).absoluteURL(request())));
 			}
 			return ok(albumsNode);
 		} catch (PhotostashDatabaseException e) {
@@ -36,8 +36,8 @@ public class AlbumController extends Controller {
 				/**
 				 * Get the stories associated with this Album
 				 */
-				for(Story story: PhotostashDatabase.INSTANCE.getStories(album)){
-					storysNode.add(story.toJson(extended));
+				for(Story story: PhotostashDatabase.INSTANCE.getRelatedDocuments(album, Story.class)){
+					storysNode.add(story.toJson(extended).put("link", routes.StoryController.getStory(story.getKey(), extended).absoluteURL(request())));
 				}
 				albumNode.put("stories", storysNode);
 				return ok(albumNode);

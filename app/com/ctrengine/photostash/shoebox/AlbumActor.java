@@ -62,7 +62,7 @@ public class AlbumActor extends UntypedActor {
 				 * Create new Album Record
 				 */
 				album = new Album(albumDirectory);
-				album = database.createAlbum(album);
+				album = database.createDocument(album);
 			}
 		} catch (PhotostashDatabaseException e) {
 			final String message = "Unable to find/create album: '" + albumDirectory.getAbsolutePath() + "': " + e.getMessage();

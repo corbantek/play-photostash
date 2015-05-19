@@ -16,7 +16,7 @@ public class StoryController extends Controller {
 		try {
 			ArrayNode storysNode = Json.newObject().arrayNode();
 			for (Story story : PhotostashDatabase.INSTANCE.getStories()) {
-				storysNode.add(story.toJson(extended));
+				storysNode.add(story.toJson(extended).put("link", routes.StoryController.getStory(story.getKey(), extended).absoluteURL(request())));
 			}
 			return ok(storysNode);
 		} catch (PhotostashDatabaseException e) {
