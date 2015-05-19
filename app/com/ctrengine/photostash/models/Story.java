@@ -6,8 +6,9 @@ import play.libs.Json;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
-public class Story extends AbstractFileDocument {
+public class Story extends AbstractFileDocument implements RelateDocument {
 	public static final String COLLECTION = "storys";
+	public static final String RELATE_COLLECTION = "storyrelations";
 	
 	private String description;
 	private int size;
@@ -52,5 +53,10 @@ public class Story extends AbstractFileDocument {
 		storyNodeExtended.put("size", getSize());
 		storyNodeExtended.put("stashSize", getStashSize());
 		return storyNodeExtended;
+	}
+
+	@Override
+	public String getRelateCollection() {
+		return RELATE_COLLECTION;
 	}
 }

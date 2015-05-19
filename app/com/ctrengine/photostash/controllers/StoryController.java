@@ -6,7 +6,7 @@ import play.mvc.Result;
 
 import com.ctrengine.photostash.database.PhotostashDatabase;
 import com.ctrengine.photostash.database.PhotostashDatabaseException;
-import com.ctrengine.photostash.models.Album;
+import com.ctrengine.photostash.models.Photograph;
 import com.ctrengine.photostash.models.Story;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -30,16 +30,18 @@ public class StoryController extends Controller {
 			if(story == null){
 				return badRequest(Json.newObject().put("message", storyId+" not found."));
 			}else{
-				ObjectNode albumNode = story.toJson(extended);
-				//ArrayNode storysNode = albumNode.arrayNode();
+				ObjectNode storyNode = story.toJson(extended);
+				ArrayNode photographsNode = storyNode.arrayNode();
 				/**
 				 * Get the stories associated with this Album
 				 */
-				//for(Story story: PhotostashDatabase.INSTANCE.getStories(album)){
-				//	storysNode.add(story.toJson(extended));
-				//}
-				//albumNode.put("photographs", storysNode);
-				return ok(albumNode);
+				for(Photograph photograph: PhotostashDatabase.INSTANCE.getRelatedDocuments(story, Photograph.class)){
+					ObjectNode photographNode = photograph.toJson(extended);
+					photographNode.put("link", routes.PhotographController.getPhotograph(photograph.getKey(), extended).absoluteURL(request()));
+					photographsNode.add(photographNode);
+				}
+				storyNode.put("photographs", photographsNode);
+				return ok(storyNode);
 			}
 		} catch (PhotostashDatabaseException e) {
 			return internalServerError(Json.newObject().put("message", e.getMessage()));

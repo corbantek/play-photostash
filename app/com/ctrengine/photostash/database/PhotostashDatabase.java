@@ -1,6 +1,7 @@
 package com.ctrengine.photostash.database;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -20,9 +21,10 @@ import com.arangodb.entity.IndexType;
 import com.arangodb.entity.StringsResultEntity;
 import com.arangodb.util.MapBuilder;
 import com.ctrengine.photostash.conf.DatabaseConfiguration;
-import com.ctrengine.photostash.models.AbstractFileDocument;
 import com.ctrengine.photostash.models.Album;
 import com.ctrengine.photostash.models.Document;
+import com.ctrengine.photostash.models.FileDocument;
+import com.ctrengine.photostash.models.Photograph;
 import com.ctrengine.photostash.models.RelateDocument;
 import com.ctrengine.photostash.models.Story;
 
@@ -30,8 +32,6 @@ public enum PhotostashDatabase {
 	INSTANCE;
 
 	private static final ALogger LOGGER = Logger.of("database");
-
-	private static final String QUERY_PATH = "FOR a IN @collection FILTER a." + AbstractFileDocument.PATH + " == @path RETURN a";
 
 	private ArangoDriver photostashArangoDriver;
 	private boolean genesisComplete;
@@ -106,6 +106,13 @@ public enum PhotostashDatabase {
 				photostashArangoDriver.createCollection(Story.COLLECTION);
 				photostashArangoDriver.createIndex(Story.COLLECTION, IndexType.HASH, true, Story.PATH);
 			}
+			/**
+			 * Create Photograph Collection
+			 */
+			if (!collections.contains(Photograph.COLLECTION)) {
+				photostashArangoDriver.createCollection(Photograph.COLLECTION);
+				photostashArangoDriver.createIndex(Photograph.COLLECTION, IndexType.HASH, true, Photograph.PATH);
+			}
 
 			CollectionOptions edgeCollectionOptions = new CollectionOptions();
 			edgeCollectionOptions.setType(CollectionType.EDGE);
@@ -114,6 +121,9 @@ public enum PhotostashDatabase {
 			 */
 			if (!collections.contains(Album.RELATE_COLLECTION)) {
 				photostashArangoDriver.createCollection(Album.RELATE_COLLECTION, edgeCollectionOptions);
+			}
+			if (!collections.contains(Story.RELATE_COLLECTION)) {
+				photostashArangoDriver.createCollection(Story.RELATE_COLLECTION, edgeCollectionOptions);
 			}
 			genesisComplete = true;
 		} catch (ArangoException e) {
@@ -144,6 +154,18 @@ public enum PhotostashDatabase {
 	public Story findStory(String path) throws PhotostashDatabaseException {
 		return findPathDocument(Story.COLLECTION, path, Story.class);
 	}	
+	
+	public Photograph getPhotograph(String photographId) throws PhotostashDatabaseException {
+		return getDocument(Photograph.COLLECTION, photographId, Photograph.class);
+	}
+	
+	public List<Photograph> getPhotographs() throws PhotostashDatabaseException {
+		return getDocuments(Photograph.COLLECTION, Photograph.class);
+	}
+	
+	public Photograph findPhotograph(String path) throws PhotostashDatabaseException {
+		return findPathDocument(Photograph.COLLECTION, path, Photograph.class);
+	}
 
 	public <R extends RelateDocument, D extends Document> List<D> getRelatedDocuments(R relateDocument, Class<D> clazz) throws PhotostashDatabaseException {
 		verifyDatabaseDriver();
@@ -178,16 +200,19 @@ public enum PhotostashDatabase {
 	private <D extends Document> List<D> getDocuments(String collection, Class<D> clazz) throws PhotostashDatabaseException {
 		verifyDatabaseDriver();
 		try {
-			return photostashArangoDriver.executeSimpleAllDocuments(collection, 0, 0, clazz).asEntityList();
+			List<D> documentList = photostashArangoDriver.executeSimpleAllDocuments(collection, 0, 0, clazz).asEntityList();
+			Collections.sort(documentList);
+			return documentList;
 		} catch (ArangoException e) {
 			throw new PhotostashDatabaseException(e);
 		}
 	}
 
-	private <D extends AbstractFileDocument> D findPathDocument(String collection, String path, Class<D> clazz) throws PhotostashDatabaseException {
+	private <D extends FileDocument> D findPathDocument(String collection, String path, Class<D> clazz) throws PhotostashDatabaseException {
 		verifyDatabaseDriver();
+		final String QUERY_PATH = "FOR a IN "+collection+" FILTER a." + FileDocument.PATH + " == @path RETURN a";
 		try {
-			Map<String, Object> bindVars = new MapBuilder().put("collection", collection).put("path", path).get();
+			Map<String, Object> bindVars = new MapBuilder().put("path", path).get();
 			List<D> documents = photostashArangoDriver.executeDocumentQuery(QUERY_PATH, bindVars, photostashArangoDriver.getDefaultAqlQueryOptions(), clazz).asEntityList();
 			if (documents.size() > 0) {
 				return documents.get(0);

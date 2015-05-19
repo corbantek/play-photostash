@@ -3,6 +3,9 @@ package com.ctrengine.photostash.shoebox;
 public class ShoeboxMessages {
 	public static class OrganizeMessage {
 	}
+	
+	public static class InitializeMessage {
+	}
 
 	public static enum ResponseType {
 		ERROR, WARNING, INFO

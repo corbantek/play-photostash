@@ -33,4 +33,11 @@ public abstract class AbstractDocument implements Document {
 	public String getDocumentAddress(){
 		return getCollection()+"/"+_key;
 	}
+
+	@Override
+	public int compareTo(Document o) {
+		return getKey().compareTo(o.getKey());
+	}
+	
+	
 }

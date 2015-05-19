@@ -12,6 +12,7 @@ import akka.japi.Creator;
 import com.ctrengine.photostash.database.PhotostashDatabase;
 import com.ctrengine.photostash.database.PhotostashDatabaseException;
 import com.ctrengine.photostash.models.Album;
+import com.ctrengine.photostash.shoebox.ShoeboxMessages.InitializeMessage;
 import com.ctrengine.photostash.shoebox.ShoeboxMessages.OrganizeMessage;
 import com.ctrengine.photostash.shoebox.ShoeboxMessages.ResponseMessage;
 import com.ctrengine.photostash.shoebox.ShoeboxMessages.ResponseType;
@@ -29,29 +30,27 @@ public class AlbumActor extends UntypedActor {
 		});
 	}
 
-	private final Map<String, ActorRef> storyActors;
-
 	private final PhotostashDatabase database;
 	private final File albumDirectory;
 	private Album album;
 
-	private AlbumActor(final File albumDirectory) throws ShoeboxException {
-		storyActors = new TreeMap<String, ActorRef>();
+	private AlbumActor(final File albumDirectory) {
 		database = PhotostashDatabase.INSTANCE;
 		this.albumDirectory = albumDirectory;
-		verifyDatabaseEntry();
 	}
 
 	@Override
 	public void onReceive(Object message) throws Exception {
-		if (message instanceof OrganizeMessage) {
-			organize((OrganizeMessage) message);
+		if (message instanceof InitializeMessage) {
+			initialize();
+		}else if (message instanceof OrganizeMessage) {
+				organize((OrganizeMessage) message);
 		} else {
 			unhandled(message);
 		}
 	}
 
-	private void verifyDatabaseEntry() throws ShoeboxException {
+	private void initialize() {
 		/**
 		 * Verify album has a database entry
 		 */
@@ -67,7 +66,7 @@ public class AlbumActor extends UntypedActor {
 		} catch (PhotostashDatabaseException e) {
 			final String message = "Unable to find/create album: '" + albumDirectory.getAbsolutePath() + "': " + e.getMessage();
 			Shoebox.LOGGER.error(message);
-			throw new ShoeboxException(message);
+			getContext().stop(getSelf());
 		}
 	}
 
@@ -80,20 +79,15 @@ public class AlbumActor extends UntypedActor {
 			if (story.isDirectory()) {
 				Shoebox.LOGGER.info("Found Story: " + story.getAbsolutePath());
 				String actorName = PhotostashUtil.generateKeyFromFile(story);
-				ActorRef storyActor = storyActors.get(actorName);
-				try {
+				ActorRef storyActor = getContext().getChild(actorName);
 					if (storyActor == null) {
 						/**
 						 * Create the Album actor if he doesn't exist anymore
 						 */
 						storyActor = getContext().actorOf(StoryActor.props(story, album), actorName);
-						storyActors.put(actorName, storyActor);
+						storyActor.tell(new InitializeMessage(), getSelf());
 					}
 					storyActor.tell(organizeMessage, getSelf());
-				} catch (Exception e) {
-					String message = "Unable to create actor: " + actorName + " - " + e.getMessage();
-					Shoebox.LOGGER.error(message);
-				}
 			}
 		}
 	}

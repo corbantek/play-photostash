@@ -11,12 +11,12 @@ public class Photograph extends AbstractFileDocument {
 	public static final String COLLECTION = "photographs";
 
 	private String description;
-	private int size;
-	private Date dateTaken;
+	private long size;
+	private long dateTaken;
 
-	public Photograph(File photographFile, String description, int size, Date dateTaken) {
+	public Photograph(File photographFile, long size, long dateTaken) {
 		super(photographFile);
-		this.description = description;
+		this.description = "";
 		this.size = size;
 		this.dateTaken = dateTaken;
 	}
@@ -25,11 +25,11 @@ public class Photograph extends AbstractFileDocument {
 		return description;
 	}
 
-	public int getSize() {
+	public long getSize() {
 		return size;
 	}
 
-	public Date getDateTaken() {
+	public long getDateTaken() {
 		return dateTaken;
 	}
 	
@@ -41,7 +41,7 @@ public class Photograph extends AbstractFileDocument {
 	@Override
 	public ObjectNode toJson() {
 		ObjectNode storyNode = Json.newObject();
-		storyNode.put("photoId", getKey());
+		storyNode.put("photographId", getKey());
 		storyNode.put("name", getName());
 		return storyNode;
 	}
@@ -51,7 +51,7 @@ public class Photograph extends AbstractFileDocument {
 		ObjectNode storyNodeExtended = toJson();
 		storyNodeExtended.put("description", getDescription());
 		storyNodeExtended.put("size", getSize());
-		storyNodeExtended.put("dateTaken", getDateTaken().getTime());
+		storyNodeExtended.put("dateTaken", getDateTaken());
 		return storyNodeExtended;
 	}
 }

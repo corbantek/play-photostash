@@ -1,6 +1,6 @@
 package com.ctrengine.photostash.models;
 
-public interface Document {
+public interface Document extends Comparable<Document> {
 
 	abstract public String getCollection();
 
