@@ -6,7 +6,7 @@ import play.mvc.Result;
 
 import com.ctrengine.photostash.database.PhotostashDatabase;
 import com.ctrengine.photostash.database.PhotostashDatabaseException;
-import com.ctrengine.photostash.models.Photograph;
+import com.ctrengine.photostash.models.PhotographDocument;
 import com.ctrengine.photostash.models.Story;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -35,9 +35,9 @@ public class StoryController extends Controller {
 				/**
 				 * Get the stories associated with this Album
 				 */
-				for(Photograph photograph: PhotostashDatabase.INSTANCE.getRelatedDocuments(story, Photograph.class)){
-					ObjectNode photographNode = photograph.toJson(extended);
-					photographNode.put("link", routes.PhotographController.getPhotograph(photograph.getKey(), extended).absoluteURL(request()));
+				for(PhotographDocument photographDocument: PhotostashDatabase.INSTANCE.getRelatedDocuments(story, PhotographDocument.class)){
+					ObjectNode photographNode = photographDocument.toJson(extended);
+					photographNode.put("link", routes.PhotographController.getPhotograph(photographDocument.getKey(), extended).absoluteURL(request()));
 					photographsNode.add(photographNode);
 				}
 				storyNode.put("photographs", photographsNode);

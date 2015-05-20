@@ -10,7 +10,7 @@ import akka.japi.Creator;
 import com.ctrengine.photostash.database.PhotostashDatabase;
 import com.ctrengine.photostash.database.PhotostashDatabaseException;
 import com.ctrengine.photostash.models.Album;
-import com.ctrengine.photostash.models.Photograph;
+import com.ctrengine.photostash.models.PhotographDocument;
 import com.ctrengine.photostash.models.Story;
 import com.ctrengine.photostash.shoebox.ShoeboxMessages.InitializeMessage;
 import com.ctrengine.photostash.shoebox.ShoeboxMessages.OrganizeMessage;
@@ -78,7 +78,7 @@ public class StoryActor extends UntypedActor {
 
 		for (File photographFile : storyDirectory.listFiles()) {
 			if (photographFile.isFile()) {
-				Shoebox.LOGGER.info("Found Photograph: " + photographFile.getAbsolutePath());
+				Shoebox.LOGGER.info("Found PhotographDocument: " + photographFile.getAbsolutePath());
 				verifyPhotograph(photographFile);
 			}
 		}
@@ -89,15 +89,15 @@ public class StoryActor extends UntypedActor {
 		 * Verify story has a database entry
 		 */
 		try {
-			Photograph photograph = database.findPhotograph(photographFile.getAbsolutePath());
-			if (photograph == null) {
+			PhotographDocument photographDocument = database.findPhotograph(photographFile.getAbsolutePath());
+			if (photographDocument == null) {
 				/**
 				 * Create new Album Record
 				 */
-				photograph = new Photograph(photographFile, photographFile.length(), new Date().getTime());
-				photograph = database.createDocument(photograph);
-				Shoebox.LOGGER.debug("Story: " + story + " Photograph:" + photograph);
-				database.relateDocumentToDocument(story, photograph);
+				photographDocument = new PhotographDocument(photographFile, photographFile.length(), new Date().getTime());
+				photographDocument = database.createDocument(photographDocument);
+				Shoebox.LOGGER.debug("Story: " + story + " PhotographDocument:" + photographDocument);
+				database.relateDocumentToDocument(story, photographDocument);
 			}
 		} catch (PhotostashDatabaseException e) {
 			final String message = "Unable to find/create/link story '" + photographFile.getAbsolutePath() + "': " + e.getMessage();

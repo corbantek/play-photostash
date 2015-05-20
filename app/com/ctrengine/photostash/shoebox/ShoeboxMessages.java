@@ -1,34 +1,34 @@
 package com.ctrengine.photostash.shoebox;
 
-import com.ctrengine.photostash.models.Photograph;
+import com.ctrengine.photostash.models.PhotographDocument;
 
 public class ShoeboxMessages {
 	public static class OrganizeMessage {
 	}
 
 	public static class PhotographRequestMessage {
-		private final Photograph photograph;
+		private final PhotographDocument photographDocument;
 
-		public PhotographRequestMessage(Photograph photograph) {
-			this.photograph = photograph;
+		public PhotographRequestMessage(PhotographDocument photographDocument) {
+			this.photographDocument = photographDocument;
 		}
 
-		public Photograph getPhotograph() {
-			return photograph;
+		public PhotographDocument getPhotograph() {
+			return photographDocument;
 		}
 	}
 
 	public static class PhotographResizeRequestMessage {
-		private final Photograph photograph;
+		private final PhotographDocument photographDocument;
 		private final int squareLength;
 
-		public PhotographResizeRequestMessage(Photograph photograph, int squareLength) {
-			this.photograph = photograph;
+		public PhotographResizeRequestMessage(PhotographDocument photographDocument, int squareLength) {
+			this.photographDocument = photographDocument;
 			this.squareLength = squareLength;
 		}
 
-		public Photograph getPhotograph() {
-			return photograph;
+		public PhotographDocument getPhotograph() {
+			return photographDocument;
 		}
 
 		public int getSquareLength() {

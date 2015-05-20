@@ -24,7 +24,8 @@ import com.ctrengine.photostash.conf.DatabaseConfiguration;
 import com.ctrengine.photostash.models.Album;
 import com.ctrengine.photostash.models.Document;
 import com.ctrengine.photostash.models.FileDocument;
-import com.ctrengine.photostash.models.Photograph;
+import com.ctrengine.photostash.models.PhotographDocument;
+import com.ctrengine.photostash.models.PhotographCacheDocument;
 import com.ctrengine.photostash.models.RelateDocument;
 import com.ctrengine.photostash.models.Story;
 
@@ -107,11 +108,19 @@ public enum PhotostashDatabase {
 				photostashArangoDriver.createIndex(Story.COLLECTION, IndexType.HASH, true, Story.PATH);
 			}
 			/**
-			 * Create Photograph Collection
+			 * Create PhotographDocument Collection
 			 */
-			if (!collections.contains(Photograph.COLLECTION)) {
-				photostashArangoDriver.createCollection(Photograph.COLLECTION);
-				photostashArangoDriver.createIndex(Photograph.COLLECTION, IndexType.HASH, true, Photograph.PATH);
+			if (!collections.contains(PhotographDocument.COLLECTION)) {
+				photostashArangoDriver.createCollection(PhotographDocument.COLLECTION);
+				photostashArangoDriver.createIndex(PhotographDocument.COLLECTION, IndexType.HASH, true, PhotographDocument.PATH);
+			}
+			/**
+			 * Create PhotographDocument Cache Collection
+			 */
+			if (!collections.contains(PhotographCacheDocument.COLLECTION)) {
+				photostashArangoDriver.createCollection(PhotographCacheDocument.COLLECTION);
+				photostashArangoDriver.createIndex(PhotographCacheDocument.COLLECTION, IndexType.SKIPLIST, true, PhotographCacheDocument.SIZE);
+				photostashArangoDriver.createIndex(PhotographCacheDocument.COLLECTION, IndexType.SKIPLIST, true, PhotographCacheDocument.SQUARE_SIZE);
 			}
 
 			CollectionOptions edgeCollectionOptions = new CollectionOptions();
@@ -124,6 +133,9 @@ public enum PhotostashDatabase {
 			}
 			if (!collections.contains(Story.RELATE_COLLECTION)) {
 				photostashArangoDriver.createCollection(Story.RELATE_COLLECTION, edgeCollectionOptions);
+			}
+			if (!collections.contains(PhotographDocument.RELATE_COLLECTION)) {
+				photostashArangoDriver.createCollection(PhotographDocument.RELATE_COLLECTION, edgeCollectionOptions);
 			}
 			genesisComplete = true;
 		} catch (ArangoException e) {
@@ -155,16 +167,16 @@ public enum PhotostashDatabase {
 		return findPathDocument(Story.COLLECTION, path, Story.class);
 	}	
 	
-	public Photograph getPhotograph(String photographId) throws PhotostashDatabaseException {
-		return getDocument(Photograph.COLLECTION, photographId, Photograph.class);
+	public PhotographDocument getPhotograph(String photographId) throws PhotostashDatabaseException {
+		return getDocument(PhotographDocument.COLLECTION, photographId, PhotographDocument.class);
 	}
 	
-	public List<Photograph> getPhotographs() throws PhotostashDatabaseException {
-		return getDocuments(Photograph.COLLECTION, Photograph.class);
+	public List<PhotographDocument> getPhotographs() throws PhotostashDatabaseException {
+		return getDocuments(PhotographDocument.COLLECTION, PhotographDocument.class);
 	}
 	
-	public Photograph findPhotograph(String path) throws PhotostashDatabaseException {
-		return findPathDocument(Photograph.COLLECTION, path, Photograph.class);
+	public PhotographDocument findPhotograph(String path) throws PhotostashDatabaseException {
+		return findPathDocument(PhotographDocument.COLLECTION, path, PhotographDocument.class);
 	}
 
 	public <R extends RelateDocument, D extends Document> List<D> getRelatedDocuments(R relateDocument, Class<D> clazz) throws PhotostashDatabaseException {
