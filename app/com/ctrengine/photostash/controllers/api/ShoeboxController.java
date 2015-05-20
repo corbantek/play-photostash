@@ -1,4 +1,4 @@
-package com.ctrengine.photostash.controllers;
+package com.ctrengine.photostash.controllers.api;
 
 import static akka.pattern.Patterns.ask;
 import play.libs.F.Function;

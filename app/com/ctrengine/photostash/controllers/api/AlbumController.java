@@ -1,4 +1,4 @@
-package com.ctrengine.photostash.controllers;
+package com.ctrengine.photostash.controllers.api;
 
 import play.libs.Json;
 import play.mvc.Controller;
