@@ -1,5 +1,6 @@
 package com.ctrengine.photostash.controllers.api;
 
+import play.Routes;
 import play.libs.Json;
 import play.mvc.Controller;
 import play.mvc.Result;
@@ -24,20 +25,23 @@ public class AlbumController extends Controller {
 			return internalServerError(Json.newObject().put("message", e.getMessage()));
 		}
 	}
-	
+
 	public static Result getAlbum(String albumId, Boolean extended) {
 		try {
 			AlbumDocument albumDocument = PhotostashDatabase.INSTANCE.getAlbum(albumId);
-			if(albumDocument == null){
-				return badRequest(Json.newObject().put("message", albumId+" not found."));
-			}else{
+			if (albumDocument == null) {
+				return badRequest(Json.newObject().put("message", albumId + " not found."));
+			} else {
 				ObjectNode albumNode = albumDocument.toJson(extended);
 				ArrayNode storysNode = albumNode.arrayNode();
 				/**
 				 * Get the stories associated with this AlbumDocument
 				 */
-				for(StoryDocument storyDocument: PhotostashDatabase.INSTANCE.getRelatedDocuments(albumDocument, StoryDocument.class)){
-					storysNode.add(storyDocument.toJson(extended).put("link", routes.StoryController.getStory(storyDocument.getKey(), extended).absoluteURL(request())));
+				for (StoryDocument storyDocument : PhotostashDatabase.INSTANCE.getRelatedDocuments(albumDocument, StoryDocument.class)) {
+					ObjectNode storyNode = storyDocument.toJson(extended);
+					storyNode.put("albumCoverLink", routes.PhotographController.getPhotographImage(storyDocument.getAlbumCoverKey()).absoluteURL(request()));
+					storyNode.put("link", routes.StoryController.getStory(storyDocument.getKey(), extended).absoluteURL(request()));
+					storysNode.add(storyNode);
 				}
 				albumNode.put("stories", storysNode);
 				return ok(albumNode);
@@ -45,5 +49,16 @@ public class AlbumController extends Controller {
 		} catch (PhotostashDatabaseException e) {
 			return internalServerError(Json.newObject().put("message", e.getMessage()));
 		}
+	}
+
+	public static Result javascriptRoutes() {
+		response().setContentType("text/javascript");
+		return ok(Routes.javascriptRouter("jsRoutesAlbumController",
+		/**
+		 * Routes
+		 */
+		com.ctrengine.photostash.controllers.api.routes.javascript.AlbumController.getAlbums(),
+
+		com.ctrengine.photostash.controllers.api.routes.javascript.AlbumController.getAlbum()));
 	}
 }

@@ -6,6 +6,7 @@ import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.UntypedActor;
 import akka.japi.Creator;
+import akka.routing.RoundRobinPool;
 import akka.routing.SmallestMailboxPool;
 
 import com.ctrengine.photostash.conf.ShoeboxConfiguration;
@@ -32,7 +33,7 @@ public class ShoeboxActor extends UntypedActor {
 	ActorRef photographRouter;
 
 	private ShoeboxActor() {
-		photographRouter = getContext().actorOf(new SmallestMailboxPool(10).props(Props.create(PhotographActor.class)), "photograph-router");
+		photographRouter = getContext().actorOf(new RoundRobinPool(10).props(Props.create(PhotographActor.class)), "photograph-router");
 	}
 
 	@Override

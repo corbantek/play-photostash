@@ -47,4 +47,28 @@ public class StoryController extends Controller {
 			return internalServerError(Json.newObject().put("message", e.getMessage()));
 		}
 	}
+	
+	public static Result getStoryThumbnail(String storyId, Boolean extended) {
+		try {
+			StoryDocument storyDocument = PhotostashDatabase.INSTANCE.getStory(storyId);
+			if(storyDocument == null){
+				return badRequest(Json.newObject().put("message", storyId+" not found."));
+			}else{
+				ObjectNode storyNode = storyDocument.toJson(extended);
+				ArrayNode photographsNode = storyNode.arrayNode();
+				/**
+				 * Get the stories associated with this AlbumDocument
+				 */
+				for(PhotographDocument photographDocument: PhotostashDatabase.INSTANCE.getRelatedDocuments(storyDocument, PhotographDocument.class)){
+					ObjectNode photographNode = photographDocument.toJson(extended);
+					photographNode.put("link", routes.PhotographController.getPhotograph(photographDocument.getKey(), extended).absoluteURL(request()));
+					photographsNode.add(photographNode);
+				}
+				storyNode.put("photographs", photographsNode);
+				return ok(storyNode);
+			}
+		} catch (PhotostashDatabaseException e) {
+			return internalServerError(Json.newObject().put("message", e.getMessage()));
+		}
+	}
 }

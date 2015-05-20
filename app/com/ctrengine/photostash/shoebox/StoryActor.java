@@ -81,12 +81,21 @@ public class StoryActor extends UntypedActor {
 		for (File photographFile : storyDirectory.listFiles()) {
 			if (photographFile.isFile()) {
 				Shoebox.LOGGER.info("Found PhotographDocument: " + photographFile.getAbsolutePath());
-				verifyPhotograph(photographFile);
+				PhotographDocument photographDocument = verifyPhotograph(photographFile);
+				if (storyDocument.getAlbumCoverKey() == null && photographDocument != null) {
+					storyDocument.setAlbumCoverKey(photographDocument.getKey());
+					try {
+						database.updateDocument(storyDocument);
+					} catch (PhotostashDatabaseException e) {
+						final String message = "Unable to update storyDocument '" + photographFile.getAbsolutePath() + "': " + e.getMessage();
+						Shoebox.LOGGER.error(message);
+					}
+				}
 			}
 		}
 	}
 
-	private void verifyPhotograph(File photographFile) {
+	private PhotographDocument verifyPhotograph(File photographFile) {
 		/**
 		 * Verify storyDocument has a database entry
 		 */
@@ -101,9 +110,11 @@ public class StoryActor extends UntypedActor {
 				Shoebox.LOGGER.debug("StoryDocument: " + storyDocument + " PhotographDocument:" + photographDocument);
 				database.relateDocumentToDocument(storyDocument, photographDocument);
 			}
+			return photographDocument;
 		} catch (PhotostashDatabaseException | DocumentException e) {
 			final String message = "Unable to find/create/link storyDocument '" + photographFile.getAbsolutePath() + "': " + e.getMessage();
 			Shoebox.LOGGER.error(message);
+			return null;
 		}
 	}
 

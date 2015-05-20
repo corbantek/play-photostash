@@ -177,6 +177,27 @@ public enum PhotostashDatabase {
 	public PhotographDocument findPhotograph(String path) throws PhotostashDatabaseException {
 		return findPathDocument(PhotographDocument.COLLECTION, path, PhotographDocument.class);
 	}
+	
+	public <D extends Document> D createDocument(D document) throws PhotostashDatabaseException {
+		verifyDatabaseDriver();
+		try {
+			return photostashArangoDriver.createDocument(document.getCollection(), document).getEntity();
+		} catch (ArangoException e) {
+			throw new PhotostashDatabaseException(e);
+		}
+	}
+	
+	public <D extends Document> D updateDocument(D document) throws PhotostashDatabaseException {
+		verifyDatabaseDriver();
+		try {
+			/**
+			 * TODO ArangoDB Driver Bug
+			 */
+			return (D)photostashArangoDriver.updateDocument(document.getCollection(), document.getKey(), document).getEntity();
+		} catch (ArangoException e) {
+			throw new PhotostashDatabaseException(e);
+		}
+	}
 
 	public <R extends RelateDocument, D extends Document> List<D> getRelatedDocuments(R relateDocument, Class<D> clazz) throws PhotostashDatabaseException {
 		return getRelatedDocuments(relateDocument, clazz, null);
@@ -205,15 +226,6 @@ public enum PhotostashDatabase {
 			return photostashArangoDriver.executeDocumentQuery(queryRelate, bindVars.get(), photostashArangoDriver.getDefaultAqlQueryOptions(), clazz).asEntityList();
 		} catch (ArangoException e) {
 			throw new PhotostashDatabaseException(queryRelate + " " + e);
-		}
-	}
-
-	public <D extends Document> D createDocument(D document) throws PhotostashDatabaseException {
-		verifyDatabaseDriver();
-		try {
-			return photostashArangoDriver.createDocument(document.getCollection(), document).getEntity();
-		} catch (ArangoException e) {
-			throw new PhotostashDatabaseException(e);
 		}
 	}
 
