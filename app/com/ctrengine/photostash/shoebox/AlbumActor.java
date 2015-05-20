@@ -11,7 +11,7 @@ import akka.japi.Creator;
 
 import com.ctrengine.photostash.database.PhotostashDatabase;
 import com.ctrengine.photostash.database.PhotostashDatabaseException;
-import com.ctrengine.photostash.models.Album;
+import com.ctrengine.photostash.models.AlbumDocument;
 import com.ctrengine.photostash.shoebox.ShoeboxMessages.InitializeMessage;
 import com.ctrengine.photostash.shoebox.ShoeboxMessages.OrganizeMessage;
 import com.ctrengine.photostash.shoebox.ShoeboxMessages.ResponseMessage;
@@ -32,7 +32,7 @@ public class AlbumActor extends UntypedActor {
 
 	private final PhotostashDatabase database;
 	private final File albumDirectory;
-	private Album album;
+	private AlbumDocument albumDocument;
 
 	private AlbumActor(final File albumDirectory) {
 		database = PhotostashDatabase.INSTANCE;
@@ -52,19 +52,19 @@ public class AlbumActor extends UntypedActor {
 
 	private void initialize() {
 		/**
-		 * Verify album has a database entry
+		 * Verify albumDocument has a database entry
 		 */
 		try {
-			album = database.findAlbum(albumDirectory.getAbsolutePath());
-			if (album == null) {
+			albumDocument = database.findAlbum(albumDirectory.getAbsolutePath());
+			if (albumDocument == null) {
 				/**
-				 * Create new Album Record
+				 * Create new AlbumDocument Record
 				 */
-				album = new Album(albumDirectory);
-				album = database.createDocument(album);
+				albumDocument = new AlbumDocument(albumDirectory);
+				albumDocument = database.createDocument(albumDocument);
 			}
 		} catch (PhotostashDatabaseException e) {
-			final String message = "Unable to find/create album: '" + albumDirectory.getAbsolutePath() + "': " + e.getMessage();
+			final String message = "Unable to find/create albumDocument: '" + albumDirectory.getAbsolutePath() + "': " + e.getMessage();
 			Shoebox.LOGGER.error(message);
 			getContext().stop(getSelf());
 		}
@@ -77,14 +77,14 @@ public class AlbumActor extends UntypedActor {
 
 		for (File story : albumDirectory.listFiles()) {
 			if (story.isDirectory()) {
-				Shoebox.LOGGER.info("Found Story: " + story.getAbsolutePath());
+				Shoebox.LOGGER.info("Found StoryDocument: " + story.getAbsolutePath());
 				String actorName = PhotostashUtil.generateKeyFromFile(story);
 				ActorRef storyActor = getContext().getChild(actorName);
 					if (storyActor == null) {
 						/**
-						 * Create the Album actor if he doesn't exist anymore
+						 * Create the AlbumDocument actor if he doesn't exist anymore
 						 */
-						storyActor = getContext().actorOf(StoryActor.props(story, album), actorName);
+						storyActor = getContext().actorOf(StoryActor.props(story, albumDocument), actorName);
 						storyActor.tell(new InitializeMessage(), getSelf());
 					}
 					storyActor.tell(organizeMessage, getSelf());

@@ -6,13 +6,13 @@ import play.libs.Json;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
-public class Album extends AbstractFileDocument implements RelateDocument {
+public class AlbumDocument extends AbstractFileDocument implements RelateDocument {
 	public static final String COLLECTION = "albums";
 	public static final String RELATE_COLLECTION = "albumrelations";
 
 	private String description;
 
-	public Album(File albumFile) {
+	public AlbumDocument(File albumFile) {
 		super(albumFile);
 		this.description = "";
 	}

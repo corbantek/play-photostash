@@ -9,33 +9,33 @@ import akka.japi.Creator;
 
 import com.ctrengine.photostash.database.PhotostashDatabase;
 import com.ctrengine.photostash.database.PhotostashDatabaseException;
-import com.ctrengine.photostash.models.Album;
+import com.ctrengine.photostash.models.AlbumDocument;
 import com.ctrengine.photostash.models.PhotographDocument;
-import com.ctrengine.photostash.models.Story;
+import com.ctrengine.photostash.models.StoryDocument;
 import com.ctrengine.photostash.shoebox.ShoeboxMessages.InitializeMessage;
 import com.ctrengine.photostash.shoebox.ShoeboxMessages.OrganizeMessage;
 
 public class StoryActor extends UntypedActor {
-	static Props props(final File storyDirectory, final Album album) {
+	static Props props(final File storyDirectory, final AlbumDocument albumDocument) {
 		return Props.create(new Creator<StoryActor>() {
 			private static final long serialVersionUID = 7739531677211647759L;
 
 			@Override
 			public StoryActor create() throws Exception {
-				return new StoryActor(storyDirectory, album);
+				return new StoryActor(storyDirectory, albumDocument);
 			}
 		});
 	}
 
 	private final PhotostashDatabase database;
 	private final File storyDirectory;
-	private final Album album;
-	private Story story;
+	private final AlbumDocument albumDocument;
+	private StoryDocument storyDocument;
 
-	private StoryActor(final File storyDirectory, final Album album) throws ShoeboxException {
+	private StoryActor(final File storyDirectory, final AlbumDocument albumDocument) throws ShoeboxException {
 		database = PhotostashDatabase.INSTANCE;
 		this.storyDirectory = storyDirectory;
-		this.album = album;
+		this.albumDocument = albumDocument;
 	}
 
 	@Override
@@ -51,21 +51,21 @@ public class StoryActor extends UntypedActor {
 
 	private void initialize() {
 		/**
-		 * Verify story has a database entry
+		 * Verify storyDocument has a database entry
 		 */
 		try {
-			story = database.findStory(storyDirectory.getAbsolutePath());
-			if (story == null) {
+			storyDocument = database.findStory(storyDirectory.getAbsolutePath());
+			if (storyDocument == null) {
 				/**
-				 * Create new Album Record
+				 * Create new AlbumDocument Record
 				 */
-				story = new Story(storyDirectory, 0, 0);
-				story = database.createDocument(story);
-				Shoebox.LOGGER.debug("Album: " + album + " Story:" + story);
-				database.relateDocumentToDocument(album, story);
+				storyDocument = new StoryDocument(storyDirectory, 0, 0);
+				storyDocument = database.createDocument(storyDocument);
+				Shoebox.LOGGER.debug("AlbumDocument: " + albumDocument + " StoryDocument:" + storyDocument);
+				database.relateDocumentToDocument(albumDocument, storyDocument);
 			}
 		} catch (PhotostashDatabaseException e) {
-			final String message = "Unable to find/create/link story '" + storyDirectory.getAbsolutePath() + "': " + e.getMessage();
+			final String message = "Unable to find/create/link storyDocument '" + storyDirectory.getAbsolutePath() + "': " + e.getMessage();
 			Shoebox.LOGGER.error(message);
 			getContext().stop(getSelf());
 		}
@@ -86,21 +86,21 @@ public class StoryActor extends UntypedActor {
 	
 	private void verifyPhotograph(File photographFile){
 		/**
-		 * Verify story has a database entry
+		 * Verify storyDocument has a database entry
 		 */
 		try {
 			PhotographDocument photographDocument = database.findPhotograph(photographFile.getAbsolutePath());
 			if (photographDocument == null) {
 				/**
-				 * Create new Album Record
+				 * Create new AlbumDocument Record
 				 */
 				photographDocument = new PhotographDocument(photographFile, photographFile.length(), new Date().getTime());
 				photographDocument = database.createDocument(photographDocument);
-				Shoebox.LOGGER.debug("Story: " + story + " PhotographDocument:" + photographDocument);
-				database.relateDocumentToDocument(story, photographDocument);
+				Shoebox.LOGGER.debug("StoryDocument: " + storyDocument + " PhotographDocument:" + photographDocument);
+				database.relateDocumentToDocument(storyDocument, photographDocument);
 			}
 		} catch (PhotostashDatabaseException e) {
-			final String message = "Unable to find/create/link story '" + photographFile.getAbsolutePath() + "': " + e.getMessage();
+			final String message = "Unable to find/create/link storyDocument '" + photographFile.getAbsolutePath() + "': " + e.getMessage();
 			Shoebox.LOGGER.error(message);
 			getContext().stop(getSelf());
 		}

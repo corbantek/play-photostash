@@ -21,13 +21,13 @@ import com.arangodb.entity.IndexType;
 import com.arangodb.entity.StringsResultEntity;
 import com.arangodb.util.MapBuilder;
 import com.ctrengine.photostash.conf.DatabaseConfiguration;
-import com.ctrengine.photostash.models.Album;
+import com.ctrengine.photostash.models.AlbumDocument;
 import com.ctrengine.photostash.models.Document;
 import com.ctrengine.photostash.models.FileDocument;
 import com.ctrengine.photostash.models.PhotographDocument;
 import com.ctrengine.photostash.models.PhotographCacheDocument;
 import com.ctrengine.photostash.models.RelateDocument;
-import com.ctrengine.photostash.models.Story;
+import com.ctrengine.photostash.models.StoryDocument;
 
 public enum PhotostashDatabase {
 	INSTANCE;
@@ -94,18 +94,18 @@ public enum PhotostashDatabase {
 				collections.add(collectionEntity.getName());
 			}
 			/**
-			 * Create Album Collection
+			 * Create AlbumDocument Collection
 			 */
-			if (!collections.contains(Album.COLLECTION)) {
-				photostashArangoDriver.createCollection(Album.COLLECTION);
-				photostashArangoDriver.createIndex(Album.COLLECTION, IndexType.HASH, true, Album.PATH);
+			if (!collections.contains(AlbumDocument.COLLECTION)) {
+				photostashArangoDriver.createCollection(AlbumDocument.COLLECTION);
+				photostashArangoDriver.createIndex(AlbumDocument.COLLECTION, IndexType.HASH, true, AlbumDocument.PATH);
 			}
 			/**
-			 * Create Story Collection
+			 * Create StoryDocument Collection
 			 */
-			if (!collections.contains(Story.COLLECTION)) {
-				photostashArangoDriver.createCollection(Story.COLLECTION);
-				photostashArangoDriver.createIndex(Story.COLLECTION, IndexType.HASH, true, Story.PATH);
+			if (!collections.contains(StoryDocument.COLLECTION)) {
+				photostashArangoDriver.createCollection(StoryDocument.COLLECTION);
+				photostashArangoDriver.createIndex(StoryDocument.COLLECTION, IndexType.HASH, true, StoryDocument.PATH);
 			}
 			/**
 			 * Create PhotographDocument Collection
@@ -126,13 +126,13 @@ public enum PhotostashDatabase {
 			CollectionOptions edgeCollectionOptions = new CollectionOptions();
 			edgeCollectionOptions.setType(CollectionType.EDGE);
 			/**
-			 * Create Album->Story Graph/Edge
+			 * Create AlbumDocument->StoryDocument Graph/Edge
 			 */
-			if (!collections.contains(Album.RELATE_COLLECTION)) {
-				photostashArangoDriver.createCollection(Album.RELATE_COLLECTION, edgeCollectionOptions);
+			if (!collections.contains(AlbumDocument.RELATE_COLLECTION)) {
+				photostashArangoDriver.createCollection(AlbumDocument.RELATE_COLLECTION, edgeCollectionOptions);
 			}
-			if (!collections.contains(Story.RELATE_COLLECTION)) {
-				photostashArangoDriver.createCollection(Story.RELATE_COLLECTION, edgeCollectionOptions);
+			if (!collections.contains(StoryDocument.RELATE_COLLECTION)) {
+				photostashArangoDriver.createCollection(StoryDocument.RELATE_COLLECTION, edgeCollectionOptions);
 			}
 			if (!collections.contains(PhotographDocument.RELATE_COLLECTION)) {
 				photostashArangoDriver.createCollection(PhotographDocument.RELATE_COLLECTION, edgeCollectionOptions);
@@ -143,28 +143,28 @@ public enum PhotostashDatabase {
 		}
 	}
 
-	public List<Album> getAlbums() throws PhotostashDatabaseException {
-		return getDocuments(Album.COLLECTION, Album.class);
+	public List<AlbumDocument> getAlbums() throws PhotostashDatabaseException {
+		return getDocuments(AlbumDocument.COLLECTION, AlbumDocument.class);
 	}
 
-	public Album getAlbum(String albumId) throws PhotostashDatabaseException {
-		return getDocument(Album.COLLECTION, albumId, Album.class);
+	public AlbumDocument getAlbum(String albumId) throws PhotostashDatabaseException {
+		return getDocument(AlbumDocument.COLLECTION, albumId, AlbumDocument.class);
 	}
 
-	public Album findAlbum(String path) throws PhotostashDatabaseException {
-		return findPathDocument(Album.COLLECTION, path, Album.class);
+	public AlbumDocument findAlbum(String path) throws PhotostashDatabaseException {
+		return findPathDocument(AlbumDocument.COLLECTION, path, AlbumDocument.class);
 	}
 
-	public Story getStory(String storyId) throws PhotostashDatabaseException {
-		return getDocument(Story.COLLECTION, storyId, Story.class);
+	public StoryDocument getStory(String storyId) throws PhotostashDatabaseException {
+		return getDocument(StoryDocument.COLLECTION, storyId, StoryDocument.class);
 	}
 	
-	public List<Story> getStories() throws PhotostashDatabaseException {
-		return getDocuments(Story.COLLECTION, Story.class);
+	public List<StoryDocument> getStories() throws PhotostashDatabaseException {
+		return getDocuments(StoryDocument.COLLECTION, StoryDocument.class);
 	}
 
-	public Story findStory(String path) throws PhotostashDatabaseException {
-		return findPathDocument(Story.COLLECTION, path, Story.class);
+	public StoryDocument findStory(String path) throws PhotostashDatabaseException {
+		return findPathDocument(StoryDocument.COLLECTION, path, StoryDocument.class);
 	}	
 	
 	public PhotographDocument getPhotograph(String photographId) throws PhotostashDatabaseException {

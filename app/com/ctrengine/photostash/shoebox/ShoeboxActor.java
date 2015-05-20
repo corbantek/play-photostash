@@ -59,12 +59,12 @@ public class ShoeboxActor extends UntypedActor {
 			 */
 			for (File album : shoeboxDirectory.listFiles()) {
 				if (album.isDirectory()) {
-					Shoebox.LOGGER.info("Found Album: " + album.getAbsolutePath());
+					Shoebox.LOGGER.info("Found AlbumDocument: " + album.getAbsolutePath());
 					String actorName = PhotostashUtil.generateKeyFromFile(album);
 					ActorRef albumActor = getContext().getChild(actorName);
 					if (albumActor == null) {
 						/**
-						 * Create the Album actor if he doesn't exist anymore
+						 * Create the AlbumDocument actor if he doesn't exist anymore
 						 */
 						albumActor = getContext().actorOf(AlbumActor.props(album), actorName);
 						albumActor.tell(new InitializeMessage(), getSelf());
