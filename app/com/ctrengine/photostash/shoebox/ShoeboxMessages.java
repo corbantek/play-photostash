@@ -20,19 +20,19 @@ public class ShoeboxMessages {
 
 	public static class PhotographResizeRequestMessage {
 		private final PhotographDocument photographDocument;
-		private final int squareLength;
+		private final int squareSize;
 
-		public PhotographResizeRequestMessage(PhotographDocument photographDocument, int squareLength) {
+		public PhotographResizeRequestMessage(PhotographDocument photographDocument, int squareSize) {
 			this.photographDocument = photographDocument;
-			this.squareLength = squareLength;
+			this.squareSize = squareSize;
 		}
 
-		public PhotographDocument getPhotograph() {
+		public PhotographDocument getPhotographDocument() {
 			return photographDocument;
 		}
 
-		public int getSquareLength() {
-			return squareLength;
+		public int getSquareSize() {
+			return squareSize;
 		}
 	}
 
