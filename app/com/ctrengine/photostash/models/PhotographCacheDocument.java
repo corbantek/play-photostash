@@ -17,6 +17,7 @@ public class PhotographCacheDocument extends AbstractDocument {
 		super(photographDocument.getKey()+"-"+squareSize+"px");
 		this.photograph = photograph;
 		this.squareSize = squareSize;
+		this.size = photograph.length;
 	}
 
 	public byte[] getPhotograph() {

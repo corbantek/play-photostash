@@ -1,6 +1,10 @@
 package com.ctrengine.photostash.models;
 
 import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Date;
 
 import play.libs.Json;
@@ -12,18 +16,32 @@ public class PhotographDocument extends AbstractFileDocument implements RelateDo
 	public static final String RELATE_COLLECTION = "photographrelations";
 
 	private String description;
+	private String mimeType;
 	private long size;
 	private long dateTaken;
 
-	public PhotographDocument(File photographFile, long size, long dateTaken) {
+	public PhotographDocument(File photographFile) throws DocumentException {
 		super(photographFile);
+		Path photographPath = Paths.get(photographFile.getAbsolutePath());
+		try {
+			mimeType = Files.probeContentType(photographPath);
+			if(!mimeType.startsWith("image")){
+				throw new DocumentException(photographFile.getName() + "is not an image.");
+			}			
+			size = Files.size(photographPath);
+		} catch (IOException e) {
+			throw new DocumentException(e);
+		}
 		this.description = "";
-		this.size = size;
-		this.dateTaken = dateTaken;
+		this.dateTaken = new Date().getTime();
 	}
 	
 	public String getDescription() {
 		return description;
+	}
+	
+	public String getMimeType() {
+		return mimeType;
 	}
 
 	public long getSize() {
@@ -56,6 +74,7 @@ public class PhotographDocument extends AbstractFileDocument implements RelateDo
 	public ObjectNode toJsonExtended() {
 		ObjectNode photographNodeExtended = toJson();
 		photographNodeExtended.put("description", getDescription());
+		photographNodeExtended.put("mimeType", getMimeType());
 		photographNodeExtended.put("size", getSize());
 		photographNodeExtended.put("dateTaken", getDateTaken());
 		return photographNodeExtended;

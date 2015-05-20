@@ -1,6 +1,7 @@
 package com.ctrengine.photostash.shoebox;
 
 import java.io.File;
+import java.nio.file.Files;
 import java.util.Date;
 
 import akka.actor.Props;
@@ -10,6 +11,7 @@ import akka.japi.Creator;
 import com.ctrengine.photostash.database.PhotostashDatabase;
 import com.ctrengine.photostash.database.PhotostashDatabaseException;
 import com.ctrengine.photostash.models.AlbumDocument;
+import com.ctrengine.photostash.models.DocumentException;
 import com.ctrengine.photostash.models.PhotographDocument;
 import com.ctrengine.photostash.models.StoryDocument;
 import com.ctrengine.photostash.shoebox.ShoeboxMessages.InitializeMessage;
@@ -83,8 +85,8 @@ public class StoryActor extends UntypedActor {
 			}
 		}
 	}
-	
-	private void verifyPhotograph(File photographFile){
+
+	private void verifyPhotograph(File photographFile) {
 		/**
 		 * Verify storyDocument has a database entry
 		 */
@@ -92,17 +94,16 @@ public class StoryActor extends UntypedActor {
 			PhotographDocument photographDocument = database.findPhotograph(photographFile.getAbsolutePath());
 			if (photographDocument == null) {
 				/**
-				 * Create new AlbumDocument Record
+				 * Create new PhotographDocument Record
 				 */
-				photographDocument = new PhotographDocument(photographFile, photographFile.length(), new Date().getTime());
+				photographDocument = new PhotographDocument(photographFile);
 				photographDocument = database.createDocument(photographDocument);
 				Shoebox.LOGGER.debug("StoryDocument: " + storyDocument + " PhotographDocument:" + photographDocument);
 				database.relateDocumentToDocument(storyDocument, photographDocument);
 			}
-		} catch (PhotostashDatabaseException e) {
+		} catch (PhotostashDatabaseException | DocumentException e) {
 			final String message = "Unable to find/create/link storyDocument '" + photographFile.getAbsolutePath() + "': " + e.getMessage();
 			Shoebox.LOGGER.error(message);
-			getContext().stop(getSelf());
 		}
 	}
 

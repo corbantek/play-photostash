@@ -6,6 +6,9 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
 
 import javax.imageio.ImageIO;
 
@@ -13,11 +16,21 @@ import org.imgscalr.Scalr;
 
 import akka.actor.UntypedActor;
 
+import com.ctrengine.photostash.database.PhotostashDatabase;
+import com.ctrengine.photostash.database.PhotostashDatabaseException;
+import com.ctrengine.photostash.models.PhotographCacheDocument;
+import com.ctrengine.photostash.models.PhotographDocument;
 import com.ctrengine.photostash.shoebox.ShoeboxMessages.PhotographRequestMessage;
 import com.ctrengine.photostash.shoebox.ShoeboxMessages.PhotographResizeRequestMessage;
 import com.ctrengine.photostash.shoebox.ShoeboxMessages.PhotographResponseMessage;
 
 public class PhotographActor extends UntypedActor {
+
+	private final PhotostashDatabase database;
+
+	public PhotographActor() {
+		database = PhotostashDatabase.INSTANCE;
+	}
 
 	@Override
 	public void onReceive(Object message) throws Exception {
@@ -46,40 +59,75 @@ public class PhotographActor extends UntypedActor {
 	}
 
 	private void readPhotographFromDatabase(PhotographResizeRequestMessage photographResizeRequestMessage) {
-		/**
-		 * TODO Get from database
-		 */
+		PhotographDocument photographDocument = photographResizeRequestMessage.getPhotograph();
+		int squareLength = photographResizeRequestMessage.getSquareLength();
 
 		/**
-		 * Create resized image - needs to be moved into an actor
+		 * Look in cache for photograph
 		 */
-		Path photographPath = Paths.get(photographResizeRequestMessage.getPhotograph().getPath());
+		Map<String, Object> filter = new TreeMap<String, Object>();
+		filter.put(PhotographCacheDocument.SQUARE_SIZE, squareLength);
+		PhotographCacheDocument photographCacheDocument = null;
 		try {
-			String mimeType = Files.probeContentType(photographPath);
-			if (mimeType.startsWith("image/")) {
-				String imageFormat = mimeType.substring(6, mimeType.length());
-				BufferedImage resizedImage = Scalr.resize(ImageIO.read(photographPath.toFile()), photographResizeRequestMessage.getSquareLength());
-				Shoebox.LOGGER.debug("Actor: " + getSelf().toString() + " Location: " + photographPath.toString() + " Mime: " + mimeType);
+			List<PhotographCacheDocument> photographCacheDocuments = database.getRelatedDocuments(photographDocument, PhotographCacheDocument.class, filter);
+			if(!photographCacheDocuments.isEmpty()){
+				if(photographCacheDocuments.size() == 1){
+					photographCacheDocument = photographCacheDocuments.get(0);
+				}else{
+					/**
+					 * TODO: Why is there more than one???
+					 */
+				}
+			}		
+		} catch (PhotostashDatabaseException e) {
+			final String message = "Unable to find PhotographCacheDocument for '" + photographDocument.getKey() + "': " + e.getMessage();
+			Shoebox.LOGGER.error(message);
+		}
+		if (photographCacheDocument != null) {
+			getSender().tell(new PhotographResponseMessage(photographCacheDocument.getPhotograph(), photographDocument.getMimeType()), getSelf());
+		} else {
+			/**
+			 * Create resized image - needs to be moved into an actor
+			 */
+			Path photographPath = Paths.get(photographDocument.getPath());
+			try {
+				String mimeType = photographDocument.getMimeType();
+				if (mimeType.startsWith("image/")) {
+					String imageFormat = mimeType.substring(6, mimeType.length());
 
-				ByteArrayOutputStream baos = new ByteArrayOutputStream();
-				ImageIO.write(resizedImage, imageFormat, baos);
-				baos.flush();
-				byte[] photograph = baos.toByteArray();
-				baos.close();
+					BufferedImage resizedImage = Scalr.resize(ImageIO.read(photographPath.toFile()), squareLength);
+					Shoebox.LOGGER.debug("Actor: " + getSelf().toString() + " Location: " + photographPath.toString() + " Mime: " + mimeType);
 
-				getSender().tell(new PhotographResponseMessage(photograph, mimeType), getSelf());
-			}else{
+					ByteArrayOutputStream baos = new ByteArrayOutputStream();
+					ImageIO.write(resizedImage, imageFormat, baos);
+					baos.flush();
+					byte[] photograph = baos.toByteArray();
+					baos.close();
+
+					getSender().tell(new PhotographResponseMessage(photograph, mimeType), getSelf());
+
+					/**
+					 * Save to Database
+					 */
+					try {
+						photographCacheDocument = database.createDocument(new PhotographCacheDocument(photographDocument, photograph, squareLength));
+						database.relateDocumentToDocument(photographDocument, photographCacheDocument);
+					} catch (PhotostashDatabaseException e) {
+						final String message = "Unable to create/link PhotographCacheDocument for '" + photographDocument.getKey() + "': " + e.getMessage();
+						Shoebox.LOGGER.error(message);
+					}
+				} else {
+					/**
+					 * TODO Need to remove photograph from database...
+					 */
+					getSender().tell(photographDocument.getName() + " is not a resizable image format.", getSelf());
+				}
+			} catch (IOException e) {
 				/**
 				 * TODO Need to remove photograph from database...
 				 */
-				getSender().tell(photographResizeRequestMessage.getPhotograph().getName()+" is not a resizable image format.", getSelf());
+				Shoebox.LOGGER.error("Unable to read photograph: " + e.getMessage());
 			}
-		} catch (IOException e) {
-			/**
-			 * TODO Need to remove photograph from database...
-			 */
-			Shoebox.LOGGER.error("Unable to read photograph: " + e.getMessage());
 		}
 	}
-
 }
