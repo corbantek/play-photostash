@@ -9,9 +9,9 @@ public abstract class AbstractFileDocument extends AbstractDocument implements F
 	private String name;
 	
 	protected AbstractFileDocument(File file){
-		super(PhotostashUtil.generateKeyFromFile(file));
+		super();
 		this.path = file.getAbsolutePath();
-		this.name = file.getName();
+		this.name = file.getName().replaceAll("\\.\\w+$", "");;
 	}
 
 	@Override

@@ -25,7 +25,7 @@ class @Browser
 			dataType: 'json'
 			, success: (albums) =>
 				for album in albums
-					albumLink = $('<a href="#'+album.link+'" class="list-group-item">')
+					albumLink = $('<a href="#" class="list-group-item">')
 					albumLink.text(album.name)
 					albumLink.click({album: album}, (event) =>
 						@displayAlbum(event.data.album)
@@ -59,7 +59,7 @@ class @Browser
 				for story in singleAlbum.stories
 					storyCover = $('<div class="col-sm-6 col-md-3">')
 					storyLink = $('<a href="#" class="thumbnail">')
-					storyLink.append($('<img src="'+story.albumCoverLink+'/resize/180" alt="'+story.name+'" class="img-rounded">')).append($('<div class="caption">)').append($('<h5>').text(story.name))) 
+					storyLink.append($('<img src="'+story.coverLink+'/resize/180" alt="'+story.name+'" class="img-rounded">')).append($('<div class="caption">)').append($('<h5>').text(story.name))) 
 					storyCover.append(storyLink)
 					storyLink.click({album: singleAlbum, story: story}, (event) =>
 						@displayStory(event.data.album, event.data.story)
@@ -98,7 +98,7 @@ class @Browser
 				@photostashGallery.empty()
 				for photograph in singleStory.photographs
 					photographLink = $('<a href="'+photograph.link+'/image/resize/800" data-toggle="lightbox" data-gallery="'+story.storyId+'" data-title="'+photograph.name+'" data-type="image" class="col-sm-4">')
-					photographLink.append($('<img src="'+photograph.link+'/image/resize/360" class="img-responsive">'))
+					photographLink.append($('<img src="'+photograph.link+'/image/resize/360" class="img-responsive" style="width: 360px">'))
 					@photostashGallery.append(photographLink)
 				return
 			, error: (jqXHR, textStatus, errorThrown) ->

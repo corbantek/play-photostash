@@ -82,8 +82,8 @@ public class StoryActor extends UntypedActor {
 			if (photographFile.isFile()) {
 				Shoebox.LOGGER.info("Found PhotographDocument: " + photographFile.getAbsolutePath());
 				PhotographDocument photographDocument = verifyPhotograph(photographFile);
-				if (storyDocument.getAlbumCoverKey() == null && photographDocument != null) {
-					storyDocument.setAlbumCoverKey(photographDocument.getKey());
+				if (storyDocument.getCoverPhotographKey() == null && photographDocument != null) {
+					storyDocument.setCoverPhotographKey(photographDocument.getKey());
 					try {
 						database.updateDocument(storyDocument);
 					} catch (PhotostashDatabaseException e) {

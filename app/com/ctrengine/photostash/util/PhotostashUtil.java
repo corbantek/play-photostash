@@ -8,7 +8,7 @@ public class PhotostashUtil {
 		if(file == null){
 			return UUID.randomUUID().toString();
 		}else{
-			return file.getName().replaceAll("[^A-Za-z\\-\\d\\s]+", "").replace('-', ':').replaceAll("\\s", "-").toLowerCase();
+			return file.getName().replaceAll("[^A-Za-z\\-\\d\\s]+", "").replaceAll("\\s", "-").toLowerCase();
 		}
 	}
 }

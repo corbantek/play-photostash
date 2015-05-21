@@ -18,28 +18,33 @@ public class PhotographDocument extends AbstractFileDocument implements RelateDo
 	private String description;
 	private String mimeType;
 	private long size;
-	private long dateTaken;
+	private Long dateTaken;
 
 	public PhotographDocument(File photographFile) throws DocumentException {
 		super(photographFile);
+		generatePhotographKey(photographFile);
 		Path photographPath = Paths.get(photographFile.getAbsolutePath());
 		try {
 			mimeType = Files.probeContentType(photographPath);
-			if(!mimeType.startsWith("image")){
+			if (!mimeType.startsWith("image")) {
 				throw new DocumentException(photographFile.getName() + "is not an image.");
-			}			
+			}
 			size = Files.size(photographPath);
 		} catch (IOException e) {
 			throw new DocumentException(e);
 		}
-		this.description = "";
-		this.dateTaken = new Date().getTime();
 	}
 	
+	private void generatePhotographKey(File file){
+		String fileName = file.getName().trim();
+		fileName = fileName.replaceAll("\\.\\w+$", "");
+		setKey(fileName.replaceAll("[^A-Za-z\\-\\d\\s]+", "").replaceAll("\\s+-\\s+", "-").replaceAll("\\s+", "-").toLowerCase());
+	}
+
 	public String getDescription() {
 		return description;
 	}
-	
+
 	public String getMimeType() {
 		return mimeType;
 	}
@@ -48,20 +53,20 @@ public class PhotographDocument extends AbstractFileDocument implements RelateDo
 		return size;
 	}
 
-	public long getDateTaken() {
+	public Long getDateTaken() {
 		return dateTaken;
 	}
-	
+
 	@Override
 	public String getRelateCollection() {
 		return RELATE_COLLECTION;
 	}
-	
+
 	@Override
 	public String getCollection() {
 		return COLLECTION;
 	}
-	
+
 	@Override
 	public ObjectNode toJson() {
 		ObjectNode photographNode = Json.newObject();
@@ -73,10 +78,14 @@ public class PhotographDocument extends AbstractFileDocument implements RelateDo
 	@Override
 	public ObjectNode toJsonExtended() {
 		ObjectNode photographNodeExtended = toJson();
-		photographNodeExtended.put("description", getDescription());
+		if (getDescription() != null) {
+			photographNodeExtended.put("description", getDescription());
+		}
 		photographNodeExtended.put("mimeType", getMimeType());
 		photographNodeExtended.put("size", getSize());
-		photographNodeExtended.put("dateTaken", getDateTaken());
+		if (getDateTaken() != null) {
+			photographNodeExtended.put("dateTaken", getDateTaken());
+		}
 		return photographNodeExtended;
 	}
 }

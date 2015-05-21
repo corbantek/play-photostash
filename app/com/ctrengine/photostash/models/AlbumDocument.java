@@ -14,7 +14,12 @@ public class AlbumDocument extends AbstractFileDocument implements RelateDocumen
 
 	public AlbumDocument(File albumFile) {
 		super(albumFile);
+		generateAlbumKey(albumFile);
 		this.description = "";
+	}
+	
+	private void generateAlbumKey(File file){
+		setKey(file.getName().trim().replaceAll("[^A-Za-z\\-\\d\\s]+", "").replaceAll("\\s+-\\s+", "-").replaceAll("\\s+", "-").toLowerCase());
 	}
 
 	public String getDescription() {
