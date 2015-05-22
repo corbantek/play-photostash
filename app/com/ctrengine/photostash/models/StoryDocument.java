@@ -12,12 +12,13 @@ import play.libs.Json;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 public class StoryDocument extends AbstractFileDocument implements RelateDocument {
-	private static SimpleDateFormat DATE_PARSER = new SimpleDateFormat("MM-dd-yyyy");
-	private static SimpleDateFormat DATE_FORMATTER = new SimpleDateFormat("yyyyMMdd");
 	private static final Pattern DATE_AND_DATE_RANGE_PATTERN = Pattern.compile("[0-1]\\d-[0-3]\\d-\\d\\d\\d\\d");
-
+	
 	public static final String COLLECTION = "storys";
 	public static final String RELATE_COLLECTION = "storyrelations";
+	
+	private transient final SimpleDateFormat DATE_PARSER = new SimpleDateFormat("MM-dd-yyyy");
+	private transient final SimpleDateFormat DATE_FORMATTER = new SimpleDateFormat("yyyyMMdd");
 
 	private String description;
 	private String coverPhotographKey;
@@ -52,10 +53,8 @@ public class StoryDocument extends AbstractFileDocument implements RelateDocumen
 		Matcher findDateAndDateRange = DATE_AND_DATE_RANGE_PATTERN.matcher(fileName);
 		if (findDateAndDateRange.find()) {
 			try {
-				synchronized (DATE_PARSER) {
-					storyDate = DATE_PARSER.parse(findDateAndDateRange.group()).getTime();
-					fileName = fileName.substring(findDateAndDateRange.end());
-				}
+				storyDate = DATE_PARSER.parse(findDateAndDateRange.group()).getTime();
+				fileName = fileName.substring(findDateAndDateRange.end());
 			} catch (ParseException e) {
 				/**
 				 * TODO Logging Message
@@ -63,10 +62,8 @@ public class StoryDocument extends AbstractFileDocument implements RelateDocumen
 			}
 			if (findDateAndDateRange.find()) {
 				try {
-					synchronized (DATE_PARSER) {
-						storyEndDate = DATE_PARSER.parse(findDateAndDateRange.group()).getTime();
-						fileName = fileName.substring(findDateAndDateRange.end());
-					}
+					storyEndDate = DATE_PARSER.parse(findDateAndDateRange.group()).getTime();
+					fileName = fileName.substring(findDateAndDateRange.end());
 				} catch (ParseException e) {
 					/**
 					 * TODO Logging Message
@@ -76,12 +73,9 @@ public class StoryDocument extends AbstractFileDocument implements RelateDocumen
 		}
 		String key = "";
 		if (storyDate != null) {
-			synchronized (DATE_FORMATTER) {
-				key += DATE_FORMATTER.format(new Date(storyDate)) + "-";
-				if (storyEndDate != null) {
-					key += DATE_FORMATTER.format(new Date(storyEndDate)) + "-";
-				}
-
+			key += DATE_FORMATTER.format(new Date(storyDate)) + "-";
+			if (storyEndDate != null) {
+				key += DATE_FORMATTER.format(new Date(storyEndDate)) + "-";
 			}
 		}
 		key += fileName.trim().replaceAll("[^A-Za-z\\-\\d\\s]+", "").replaceAll("\\s+-\\s+", "-").replaceAll("\\s+", "-").toLowerCase();
