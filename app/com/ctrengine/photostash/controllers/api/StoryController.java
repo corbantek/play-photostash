@@ -1,5 +1,6 @@
 package com.ctrengine.photostash.controllers.api;
 
+import play.Routes;
 import play.libs.Json;
 import play.mvc.Controller;
 import play.mvc.Result;
@@ -31,6 +32,7 @@ public class StoryController extends Controller {
 				return badRequest(Json.newObject().put("message", storyId+" not found."));
 			}else{
 				ObjectNode storyNode = storyDocument.toJson(extended);
+				storyNode.put("link", routes.StoryController.getStory(storyDocument.getKey(), extended).absoluteURL(request()));
 				ArrayNode photographsNode = storyNode.arrayNode();
 				/**
 				 * Get the stories associated with this AlbumDocument
@@ -70,5 +72,18 @@ public class StoryController extends Controller {
 		} catch (PhotostashDatabaseException e) {
 			return internalServerError(Json.newObject().put("message", e.getMessage()));
 		}
+	}
+	
+	public static Result javascriptRoutes() {
+		response().setContentType("text/javascript");
+		return ok(Routes.javascriptRouter("jsRoutesStoryController",
+		/**
+		 * Routes
+		 */
+		com.ctrengine.photostash.controllers.api.routes.javascript.StoryController.getStories(),
+
+		com.ctrengine.photostash.controllers.api.routes.javascript.StoryController.getStory(),
+		
+		com.ctrengine.photostash.controllers.api.routes.javascript.StoryController.getStoryThumbnail()));
 	}
 }

@@ -6,7 +6,7 @@ import play.mvc.Result;
 
 public class BrowserController extends Controller {
 	public static Result index(){
-		return browser();
+		return redirect(routes.BrowserController.browser().absoluteURL(request()));
 	}
 	
 	public static Result browser(){

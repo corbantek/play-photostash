@@ -33,6 +33,7 @@ public class AlbumController extends Controller {
 				return badRequest(Json.newObject().put("message", albumId + " not found."));
 			} else {
 				ObjectNode albumNode = albumDocument.toJson(extended);
+				albumNode.put("link", routes.AlbumController.getAlbum(albumDocument.getKey(), extended).absoluteURL(request()));
 				ArrayNode storysNode = albumNode.arrayNode();
 				/**
 				 * Get the stories associated with this AlbumDocument
