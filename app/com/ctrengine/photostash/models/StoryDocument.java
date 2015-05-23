@@ -26,10 +26,9 @@ public class StoryDocument extends AbstractFileDocument implements RelateDocumen
 	private Long storyDate;
 	private Long storyEndDate;
 
-	private Integer size;
-	private Integer stashSize;
+	private Long size;
 
-	public StoryDocument(File storyFile, int size, int stashSize) {
+	public StoryDocument(File storyFile) {
 		super(storyFile);
 		generateStoryInfo(storyFile);
 	}
@@ -86,12 +85,12 @@ public class StoryDocument extends AbstractFileDocument implements RelateDocumen
 		return description;
 	}
 
-	public Integer getSize() {
-		return size;
+	public void setSize(long size) {
+		this.size = size;
 	}
 
-	public Integer getStashSize() {
-		return stashSize;
+	public Long getSize() {
+		return size;
 	}
 
 	public String getCoverPhotographKey() {
@@ -126,9 +125,6 @@ public class StoryDocument extends AbstractFileDocument implements RelateDocumen
 		}
 		if (getSize() != null) {
 			storyNodeExtended.put("size", getSize());
-		}
-		if (getStashSize() != null) {
-			storyNodeExtended.put("stashSize", getStashSize());
 		}
 		return storyNodeExtended;
 	}

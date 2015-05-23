@@ -81,7 +81,7 @@ class @Browser
 					albumLink.text(album.name)
 					albumLink.click({album: album}, (event) =>
 						@displayStories(event.data.album)
-						history.pushState({album: album}, null, '#albumId='+album.albumId)
+						history.pushState({album: event.data.album}, null, '#albumId='+event.data.album.albumId)
 					)
 					@photostashAlbumList.append(albumLink)
 				return
@@ -113,7 +113,10 @@ class @Browser
 				for story in singleAlbum.stories
 					storyCover = $('<div class="col-sm-6 col-md-3">')
 					storyLink = $('<a class="thumbnail">')
-					storyLink.append($('<img src="'+story.coverLink+'/resize/180" alt="'+story.name+'" class="img-rounded">')).append($('<div class="caption">)').append($('<h5>').text(story.name))) 
+					if story.coverLink?
+						storyLink.append($('<img src="'+story.coverLink+'/resize/180" alt="'+story.name+'" class="img-rounded">')).append($('<div class="caption">)').append($('<h5>').text(story.name))) 
+					else
+						storyLink.append($('<div class="caption">)').append($('<h5>').text(story.name))) 
 					storyCover.append(storyLink)
 					storyLink.click({album: singleAlbum, story: story}, (event) =>
 						@displayPhotographs(event.data.album, event.data.story)
@@ -136,7 +139,7 @@ class @Browser
 			breadcrumbAlbum = $('<li>').append($('<a>').text(album.name))
 			breadcrumbAlbum.click({album: album}, (event) =>
 				@displayStories(event.data.album)
-				history.pushState({album: album}, null, '#albumId='+album.albumId)
+				history.pushState({album: event.data.album}, null, '#albumId='+event.data.album.albumId)
 			)
 			@breadcrumb.append(breadcrumbAlbum)
 		breadcrumbStory = $('<li class="active">').text(story.name)

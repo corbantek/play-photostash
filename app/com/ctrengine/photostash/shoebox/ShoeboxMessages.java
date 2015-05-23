@@ -1,9 +1,51 @@
 package com.ctrengine.photostash.shoebox;
 
+import java.io.File;
+
+import com.ctrengine.photostash.models.AlbumDocument;
 import com.ctrengine.photostash.models.PhotographDocument;
 
 public class ShoeboxMessages {
-	public static class OrganizeMessage {
+	public static class OrganizeShoeboxMessage {
+		private final String shoeboxPath;
+
+		public OrganizeShoeboxMessage(String shoeboxPath) {
+			this.shoeboxPath = shoeboxPath;
+		}
+
+		public String getShoeboxPath() {
+			return shoeboxPath;
+		}
+	}
+
+	public static class OrganizeAlbumMessage {
+		private final File albumDirectory;
+
+		public OrganizeAlbumMessage(File albumDirectory) {
+			this.albumDirectory = albumDirectory;
+		}
+
+		public File getAlbumDirectory() {
+			return albumDirectory;
+		}
+	}
+
+	public static class OrganizeStoryMessage {
+		private final AlbumDocument albumDocument;
+		private final File storyDirectory;
+
+		public OrganizeStoryMessage(AlbumDocument albumDocument, File storyDirectory) {
+			this.albumDocument = albumDocument;
+			this.storyDirectory = storyDirectory;
+		}
+
+		public AlbumDocument getAlbumDocument() {
+			return albumDocument;
+		}
+
+		public File getStoryDirectory() {
+			return storyDirectory;
+		}
 	}
 
 	public static class PhotographRequestMessage {
@@ -52,9 +94,6 @@ public class ShoeboxMessages {
 		public String getMimeType() {
 			return mimeType;
 		}
-	}
-
-	public static class InitializeMessage {
 	}
 
 	public static enum ResponseType {

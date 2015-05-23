@@ -1,14 +1,14 @@
 package com.ctrengine.photostash.shoebox;
 
 import java.awt.image.BufferedImage;
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
-import java.util.TreeMap;
 
 import javax.imageio.ImageIO;
 
@@ -16,8 +16,10 @@ import org.imgscalr.Scalr;
 
 import akka.actor.UntypedActor;
 
-import com.ctrengine.photostash.database.PhotostashDatabase;
 import com.ctrengine.photostash.database.DatabaseException;
+import com.ctrengine.photostash.database.DatabaseFilter;
+import com.ctrengine.photostash.database.DatabaseFilter.DatabaseFilterType;
+import com.ctrengine.photostash.database.PhotostashDatabase;
 import com.ctrengine.photostash.models.PhotographCacheDocument;
 import com.ctrengine.photostash.models.PhotographDocument;
 import com.ctrengine.photostash.shoebox.ShoeboxMessages.PhotographRequestMessage;
@@ -69,51 +71,57 @@ public class PhotographActor extends UntypedActor {
 			/**
 			 * Look in cache for photograph
 			 */
-			Map<String, Object> filter = new TreeMap<String, Object>();
-			filter.put(PhotographCacheDocument.SQUARE_SIZE, squareSize);
+			DatabaseFilter filter = new DatabaseFilter(PhotographCacheDocument.SQUARE_SIZE, squareSize, DatabaseFilterType.GREATER_EQUAL_THAN);
 			PhotographCacheDocument photographCacheDocument = null;
 			try {
-				List<PhotographCacheDocument> photographCacheDocuments = database.getRelatedDocuments(photographDocument, PhotographCacheDocument.class, filter);
+				List<PhotographCacheDocument> photographCacheDocuments = database.getRelatedDocuments(photographDocument, PhotographCacheDocument.class, Arrays.asList(filter), PhotographCacheDocument.SQUARE_SIZE);
 				if (!photographCacheDocuments.isEmpty()) {
-					if (photographCacheDocuments.size() == 1) {
-						photographCacheDocument = photographCacheDocuments.get(0);
-					} else {
-						/**
-						 * TODO: Why is there more than one???
-						 */
-					}
+					photographCacheDocument = photographCacheDocuments.get(0);
 				}
 			} catch (DatabaseException e) {
 				final String message = "Unable to find PhotographCacheDocument for '" + photographDocument.getKey() + "': " + e.getMessage();
 				Shoebox.LOGGER.error(message);
 			}
+			boolean writeCacheDocument = false;
 			if (photographCacheDocument != null) {
-				/**
-				 * Send Cached Photograph
-				 */
-				getSender().tell(new PhotographResponseMessage(photographCacheDocument.getPhotograph(), photographDocument.getMimeType()), getSelf());
+				if (photographCacheDocument.getSquareSize() != squareSize) {
+					/**
+					 * We need to generate a resized photograph from our
+					 * previously resized photograph (Performance Improvement)
+					 */
+					photographCacheDocument = generatePhotograph(photographDocument, photographCacheDocument, squareSize);
+					writeCacheDocument = true;
+				}
 			} else {
 				/**
-				 * Generate Cached Photograph
+				 * Generate Cached Photograph from Original Photograph
 				 */
-				photographCacheDocument = generatePhotograph(photographDocument, squareSize);
-				if (photographCacheDocument != null) {
-					getSender().tell(new PhotographResponseMessage(photographCacheDocument.getPhotograph(), photographDocument.getMimeType()), getSelf());
+				photographCacheDocument = generatePhotograph(photographDocument, null, squareSize);
+				writeCacheDocument = true;
+
+			}
+			if (photographCacheDocument != null) {
+				getSender().tell(new PhotographResponseMessage(photographCacheDocument.getPhotograph(), photographDocument.getMimeType()), getSelf());
+				if (writeCacheDocument) {
 					/**
 					 * Save to Database
 					 */
 					writePhotographCacheToDatabase(photographDocument, photographCacheDocument);
-				} else {
 					/**
-					 * TODO Need to remove photograph from database...
+					 * Update Photograph Record with new stash size
 					 */
-					getSender().tell(photographDocument.getName() + " could not be read or is not a resizable image format.", getSelf());
+					updatePhotographStashSize(photographDocument, photographCacheDocument);	
 				}
+			} else {
+				/**
+				 * TODO Need to remove photograph from database...
+				 */
+				getSender().tell(photographDocument.getName() + " could not be read or is not a resizable image format.", getSelf());
 			}
 		}
 	}
 
-	private PhotographCacheDocument generatePhotograph(PhotographDocument photographDocument, int squareSize) {
+	private PhotographCacheDocument generatePhotograph(PhotographDocument photographDocument, PhotographCacheDocument photographCacheDocument, int newSquareSize) {
 		/**
 		 * Create resized image - needs to be moved into an actor
 		 */
@@ -123,7 +131,20 @@ public class PhotographActor extends UntypedActor {
 			if (mimeType.startsWith("image/")) {
 				String imageFormat = mimeType.substring(6, mimeType.length());
 
-				BufferedImage resizedImage = Scalr.resize(ImageIO.read(photographPath.toFile()), squareSize);
+				BufferedImage resizedImage = null;
+				if (photographCacheDocument == null) {
+					/**
+					 * Resize from Disk
+					 */
+					Shoebox.LOGGER.debug("Resizing " + photographDocument.getKey() + " from disk square size: " + photographDocument.getSquareSize() + " -> " + newSquareSize);
+					resizedImage = Scalr.resize(ImageIO.read(photographPath.toFile()), newSquareSize);
+				} else {
+					/**
+					 * Resize from previous cached image (Performance)
+					 */
+					Shoebox.LOGGER.debug("Resizing " + photographDocument.getKey() + " from cache square size: " + photographCacheDocument.getSquareSize() + " -> " + newSquareSize);
+					resizedImage = Scalr.resize(ImageIO.read(new ByteArrayInputStream(photographCacheDocument.getPhotograph())), newSquareSize);
+				}
 				Shoebox.LOGGER.debug("Actor: " + getSelf().toString() + " Location: " + photographPath.toString() + " Mime: " + mimeType);
 
 				ByteArrayOutputStream baos = new ByteArrayOutputStream();
@@ -131,8 +152,8 @@ public class PhotographActor extends UntypedActor {
 				baos.flush();
 				byte[] photograph = baos.toByteArray();
 				baos.close();
-
-				return new PhotographCacheDocument(photographDocument, photograph, squareSize);
+				
+				return new PhotographCacheDocument(photographDocument, photograph, newSquareSize);
 			} else {
 				Shoebox.LOGGER.error("Could not resize photograph: " + photographDocument.getName());
 				return null;
@@ -147,6 +168,16 @@ public class PhotographActor extends UntypedActor {
 	}
 
 	private void writePhotographCacheToDatabase(PhotographDocument photographDocument, PhotographCacheDocument photographCacheDocument) {
+		try {
+			photographDocument.setStashSize(photographDocument.getStashSize()+photographCacheDocument.getSize());
+			database.updateDocument(photographDocument);
+		} catch (DatabaseException e) {
+			final String message = "Unable to update PhotographDocument stash size for '" + photographDocument.getKey() + "': " + e.getMessage();
+			Shoebox.LOGGER.error(message);
+		}
+	}
+	
+	private void updatePhotographStashSize(PhotographDocument photographDocument, PhotographCacheDocument photographCacheDocument){
 		try {
 			database.createDocument(photographCacheDocument);
 			database.relateDocumentToDocument(photographDocument, photographCacheDocument);

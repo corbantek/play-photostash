@@ -7,16 +7,14 @@ import akka.actor.Props;
 import akka.actor.UntypedActor;
 import akka.japi.Creator;
 import akka.routing.RoundRobinPool;
-import akka.routing.SmallestMailboxPool;
 
 import com.ctrengine.photostash.conf.ShoeboxConfiguration;
-import com.ctrengine.photostash.shoebox.ShoeboxMessages.InitializeMessage;
-import com.ctrengine.photostash.shoebox.ShoeboxMessages.OrganizeMessage;
+import com.ctrengine.photostash.shoebox.ShoeboxMessages.OrganizeAlbumMessage;
+import com.ctrengine.photostash.shoebox.ShoeboxMessages.OrganizeShoeboxMessage;
 import com.ctrengine.photostash.shoebox.ShoeboxMessages.PhotographRequestMessage;
 import com.ctrengine.photostash.shoebox.ShoeboxMessages.PhotographResizeRequestMessage;
 import com.ctrengine.photostash.shoebox.ShoeboxMessages.ResponseMessage;
 import com.ctrengine.photostash.shoebox.ShoeboxMessages.ResponseType;
-import com.ctrengine.photostash.util.PhotostashUtil;
 
 public class ShoeboxActor extends UntypedActor {
 	static Props props() {
@@ -30,47 +28,39 @@ public class ShoeboxActor extends UntypedActor {
 		});
 	}
 	
-	ActorRef photographRouter;
+	private ActorRef photographRouter;
+	private ActorRef albumRouter;
 
 	private ShoeboxActor() {
 		photographRouter = getContext().actorOf(new RoundRobinPool(10).props(Props.create(PhotographActor.class)), "photograph-router");
+		albumRouter = getContext().actorOf(new RoundRobinPool(2).props(Props.create(AlbumActor.class)), "album-router");
 	}
 
 	@Override
 	public void onReceive(Object message) throws Exception {
 		if (message instanceof PhotographRequestMessage || message instanceof PhotographResizeRequestMessage) {
 			photographRouter.tell(message, getSender());
-		}else if (message instanceof OrganizeMessage) {
-			organize((OrganizeMessage) message);
+		}else if (message instanceof OrganizeShoeboxMessage) {
+			organize((OrganizeShoeboxMessage) message);
 		} else {
 			unhandled(message);
 		}
 	}
 
-	private void organize(OrganizeMessage organizeMessage) {
+	private void organize(OrganizeShoeboxMessage organizeMessage) {
 		/**
 		 * TODO First detect if another organize is running
 		 */
 
-		File shoeboxDirectory = new File(ShoeboxConfiguration.INSTANCE.getShoeboxPath());
+		File shoeboxDirectory = new File(organizeMessage.getShoeboxPath());
 		if (shoeboxDirectory.exists() && shoeboxDirectory.isDirectory()) {
 			/**
-			 * Look for all existing and new directories and create actors for
-			 * them to monitor
+			 * Send messages to the Album Router to perform organizations for each album found
 			 */
-			for (File album : shoeboxDirectory.listFiles()) {
-				if (album.isDirectory()) {
-					Shoebox.LOGGER.info("Found AlbumDocument: " + album.getAbsolutePath());
-					String actorName = PhotostashUtil.generateKeyFromFile(album);
-					ActorRef albumActor = getContext().getChild(actorName);
-					if (albumActor == null) {
-						/**
-						 * Create the AlbumDocument actor if he doesn't exist anymore
-						 */
-						albumActor = getContext().actorOf(AlbumActor.props(album), actorName);
-						albumActor.tell(new InitializeMessage(), getSelf());
-					}
-					albumActor.tell(organizeMessage, getSelf());
+			for (File albumDirectory : shoeboxDirectory.listFiles()) {
+				if (albumDirectory.isDirectory()) {
+					Shoebox.LOGGER.info("Found Album: " + albumDirectory.getAbsolutePath());
+					albumRouter.tell(new OrganizeAlbumMessage(albumDirectory), getSelf());
 				}
 			}
 			/**

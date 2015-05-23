@@ -40,7 +40,10 @@ public class AlbumController extends Controller {
 				 */
 				for (StoryDocument storyDocument : PhotostashDatabase.INSTANCE.getRelatedDocuments(albumDocument, StoryDocument.class)) {
 					ObjectNode storyNode = storyDocument.toJson(extended);
-					storyNode.put("coverLink", routes.PhotographController.getPhotographImage(storyDocument.getCoverPhotographKey()).absoluteURL(request()));
+					System.out.println("story: "+storyDocument.getName()+" key"+storyDocument.getCoverPhotographKey());
+					if(storyDocument.getCoverPhotographKey() != null){
+						storyNode.put("coverLink", routes.PhotographController.getPhotographImage(storyDocument.getCoverPhotographKey()).absoluteURL(request()));
+					}
 					storyNode.put("link", routes.StoryController.getStory(storyDocument.getKey(), extended).absoluteURL(request()));
 					storysNode.add(storyNode);
 				}

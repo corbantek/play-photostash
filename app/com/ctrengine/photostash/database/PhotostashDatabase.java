@@ -179,7 +179,7 @@ public enum PhotostashDatabase {
 	public PhotographDocument findPhotograph(String path) throws DatabaseException {
 		return findPathDocument(PhotographDocument.COLLECTION, path, PhotographDocument.class);
 	}
-	
+
 	public <D extends Document> D createDocument(D document) throws DatabaseException {
 		verifyDatabaseDriver();
 		try {
@@ -188,14 +188,14 @@ public enum PhotostashDatabase {
 			throw new DatabaseException(e);
 		}
 	}
-	
+
 	public <D extends Document> D updateDocument(D document) throws DatabaseException {
 		verifyDatabaseDriver();
 		try {
 			/**
 			 * TODO ArangoDB Driver Bug
 			 */
-			return (D)photostashArangoDriver.updateDocument(document.getCollection(), document.getKey(), document).getEntity();
+			return (D) photostashArangoDriver.updateDocument(document.getCollection(), document.getKey(), document).getEntity();
 		} catch (ArangoException e) {
 			throw new DatabaseException(e);
 		}
@@ -204,27 +204,34 @@ public enum PhotostashDatabase {
 	public <R extends RelateDocument, D extends Document> List<D> getRelatedDocuments(R relateDocument, Class<D> clazz) throws DatabaseException {
 		return getRelatedDocuments(relateDocument, clazz, null);
 	}
+	
+	public <R extends RelateDocument, D extends Document> List<D> getRelatedDocuments(R relateDocument, Class<D> clazz, List<DatabaseFilter> andFilterList) throws DatabaseException {
+		return getRelatedDocuments(relateDocument, clazz, andFilterList, null);
+	}
 
-	public <R extends RelateDocument, D extends Document> List<D> getRelatedDocuments(R relateDocument, Class<D> clazz, Map<String, Object> andFilter) throws DatabaseException {
+	public <R extends RelateDocument, D extends Document> List<D> getRelatedDocuments(R relateDocument, Class<D> clazz, List<DatabaseFilter> andFilterList, String sortByKey) throws DatabaseException {
 		verifyDatabaseDriver();
 		String queryRelate = "FOR a in NEIGHBORS(" + relateDocument.getCollection() + ", " + relateDocument.getRelateCollection() + ", @id, 'outbound') ";
 		MapBuilder bindVars = new MapBuilder().put("id", relateDocument.getDocumentAddress());
-		if (andFilter != null && !andFilter.isEmpty()) {
+		if (andFilterList != null && !andFilterList.isEmpty()) {
 			queryRelate += "FILTER";
 			boolean firstFilter = true;
-			for (Entry<String, Object> entry : andFilter.entrySet()) {
+			for (DatabaseFilter filter : andFilterList) {
 				if (firstFilter) {
 					queryRelate += " ";
 					firstFilter = false;
 				} else {
 					queryRelate += "&& ";
 				}
-				queryRelate += "a.vertex." + entry.getKey() + " == @" + entry.getKey() + " ";
-				bindVars.put(entry.getKey(), entry.getValue());
+				queryRelate += "a.vertex." + filter.getKey() + " " + filter.getOperand() + " @" + filter.getKey() + " ";
+				bindVars.put(filter.getKey(), filter.getValue());
 			}
 		}
+		if(sortByKey != null){
+			queryRelate += "SORT a.vertex."+sortByKey+" ";
+		}
 		queryRelate += "RETURN a.vertex";
-		try { 
+		try {
 			return photostashArangoDriver.executeDocumentQuery(queryRelate, bindVars.get(), photostashArangoDriver.getDefaultAqlQueryOptions(), clazz).asEntityList();
 		} catch (ArangoException e) {
 			throw new DatabaseException(queryRelate + " " + e);

@@ -1,101 +1,103 @@
 package com.ctrengine.photostash.shoebox;
 
 import java.io.File;
-import java.nio.file.Files;
-import java.util.Date;
 
-import akka.actor.Props;
 import akka.actor.UntypedActor;
-import akka.japi.Creator;
 
-import com.ctrengine.photostash.database.PhotostashDatabase;
 import com.ctrengine.photostash.database.DatabaseException;
+import com.ctrengine.photostash.database.PhotostashDatabase;
 import com.ctrengine.photostash.models.AlbumDocument;
 import com.ctrengine.photostash.models.DocumentException;
 import com.ctrengine.photostash.models.PhotographDocument;
 import com.ctrengine.photostash.models.StoryDocument;
-import com.ctrengine.photostash.shoebox.ShoeboxMessages.InitializeMessage;
-import com.ctrengine.photostash.shoebox.ShoeboxMessages.OrganizeMessage;
+import com.ctrengine.photostash.shoebox.ShoeboxMessages.OrganizeStoryMessage;
 
 public class StoryActor extends UntypedActor {
-	static Props props(final File storyDirectory, final AlbumDocument albumDocument) {
-		return Props.create(new Creator<StoryActor>() {
-			private static final long serialVersionUID = 7739531677211647759L;
-
-			@Override
-			public StoryActor create() throws Exception {
-				return new StoryActor(storyDirectory, albumDocument);
-			}
-		});
-	}
-
 	private final PhotostashDatabase database;
-	private final File storyDirectory;
-	private final AlbumDocument albumDocument;
-	private StoryDocument storyDocument;
 
-	private StoryActor(final File storyDirectory, final AlbumDocument albumDocument) throws ShoeboxException {
+	private StoryActor() throws ShoeboxException {
 		database = PhotostashDatabase.INSTANCE;
-		this.storyDirectory = storyDirectory;
-		this.albumDocument = albumDocument;
 	}
 
 	@Override
 	public void onReceive(Object message) throws Exception {
-		if (message instanceof InitializeMessage) {
-			initialize();
-		} else if (message instanceof OrganizeMessage) {
-			organize((OrganizeMessage) message);
+		if (message instanceof OrganizeStoryMessage) {
+			organize((OrganizeStoryMessage) message);
 		} else {
 			unhandled(message);
 		}
 	}
 
-	private void initialize() {
+	private StoryDocument getStoryDocument(final AlbumDocument albumDocument, final File storyDirectory) throws ShoeboxException {
 		/**
 		 * Verify storyDocument has a database entry
 		 */
 		try {
-			storyDocument = database.findStory(storyDirectory.getAbsolutePath());
+			StoryDocument storyDocument = database.findStory(storyDirectory.getAbsolutePath());
 			if (storyDocument == null) {
 				/**
 				 * Create new AlbumDocument Record
 				 */
-				storyDocument = new StoryDocument(storyDirectory, 0, 0);
+				storyDocument = new StoryDocument(storyDirectory);
 				storyDocument = database.createDocument(storyDocument);
 				Shoebox.LOGGER.debug("AlbumDocument: " + albumDocument + " StoryDocument:" + storyDocument);
 				database.relateDocumentToDocument(albumDocument, storyDocument);
 			}
+			return storyDocument;
 		} catch (DatabaseException e) {
 			final String message = "Unable to find/create/link storyDocument '" + storyDirectory.getAbsolutePath() + "': " + e.getMessage();
 			Shoebox.LOGGER.error(message);
-			getContext().stop(getSelf());
+			throw new ShoeboxException(message);
 		}
 	}
 
-	private void organize(OrganizeMessage organizeMessage) {
+	private void organize(OrganizeStoryMessage organizeMessage) {
 		/**
 		 * First detect if another organize is running
 		 */
-
-		for (File photographFile : storyDirectory.listFiles()) {
-			if (photographFile.isFile()) {
-				Shoebox.LOGGER.info("Found PhotographDocument: " + photographFile.getAbsolutePath());
-				PhotographDocument photographDocument = verifyPhotograph(photographFile);
-				if (storyDocument.getCoverPhotographKey() == null && photographDocument != null) {
-					storyDocument.setCoverPhotographKey(photographDocument.getKey());
-					try {
-						database.updateDocument(storyDocument);
-					} catch (DatabaseException e) {
-						final String message = "Unable to update storyDocument '" + photographFile.getAbsolutePath() + "': " + e.getMessage();
-						Shoebox.LOGGER.error(message);
+		File storyDirectory = organizeMessage.getStoryDirectory();
+		try {
+			StoryDocument storyDocument = getStoryDocument(organizeMessage.getAlbumDocument(), storyDirectory);
+			String coverPhotographKey = null;
+			long size = 0;
+			for (File photographFile : storyDirectory.listFiles()) {
+				if (photographFile.isFile()) {
+					Shoebox.LOGGER.info("Found PhotographDocument: " + photographFile.getAbsolutePath());
+					PhotographDocument photographDocument = verifyPhotograph(storyDocument, photographFile);
+					if (photographDocument != null) {
+						size += photographDocument.getSize();
+						/**
+						 * Set first photograph to cover
+						 */
+						if (coverPhotographKey == null) {
+							coverPhotographKey = photographDocument.getKey();
+						}
 					}
 				}
 			}
+			/**
+			 * Set Story Disk Size
+			 */
+			storyDocument.setSize(size);
+			/**
+			 * Setup a cover photo if missing
+			 */
+			if (storyDocument.getCoverPhotographKey() == null) {
+				storyDocument.setCoverPhotographKey(coverPhotographKey);
+			}	
+			try {
+				database.updateDocument(storyDocument);
+			} catch (DatabaseException e) {
+				final String message = "Unable to update storyDocument '" + storyDocument.getName() + "': " + e.getMessage();
+				Shoebox.LOGGER.error(message);
+			}
+		} catch (ShoeboxException e) {
+			final String message = "Unable to organize story: '" + storyDirectory.getAbsolutePath() + "': " + e.getMessage();
+			Shoebox.LOGGER.error(message);
 		}
 	}
 
-	private PhotographDocument verifyPhotograph(File photographFile) {
+	private PhotographDocument verifyPhotograph(final StoryDocument storyDocument, final File photographFile) {
 		/**
 		 * Verify storyDocument has a database entry
 		 */
@@ -112,7 +114,7 @@ public class StoryActor extends UntypedActor {
 			}
 			return photographDocument;
 		} catch (DatabaseException | DocumentException e) {
-			final String message = "Unable to find/create/link storyDocument '" + photographFile.getAbsolutePath() + "': " + e.getMessage();
+			final String message = "Unable to find/create/link photographDocument '" + photographFile.getAbsolutePath() + "': " + e.getMessage();
 			Shoebox.LOGGER.error(message);
 			return null;
 		}

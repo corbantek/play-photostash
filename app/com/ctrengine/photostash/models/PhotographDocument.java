@@ -36,12 +36,14 @@ public class PhotographDocument extends AbstractFileDocument implements RelateDo
 	private String mimeType;
 	private int squareSize;
 	private long size;
+	private long stashSize;
 	
 	private Long dateTaken;
 
 	public PhotographDocument(File photographFile) throws DocumentException {
 		super(photographFile);
 		generatePhotographInfo(photographFile);
+		stashSize = 0;
 	}
 	
 	private void generatePhotographInfo(File file) throws DocumentException {
@@ -125,7 +127,10 @@ public class PhotographDocument extends AbstractFileDocument implements RelateDo
 			try {
 				Metadata metadata = ImageMetadataReader.readMetadata(file);
 				ExifSubIFDDirectory exifSubIFDDirectory = metadata.getFirstDirectoryOfType(ExifSubIFDDirectory.class);
-				dateTaken = exifSubIFDDirectory.getDate(ExifSubIFDDirectory.TAG_DATETIME_ORIGINAL).getTime();
+				Date date = exifSubIFDDirectory.getDate(ExifSubIFDDirectory.TAG_DATETIME_ORIGINAL);
+				if(date != null){
+					dateTaken = date.getTime();
+				}
 			} catch (ImageProcessingException | IOException e) {
 				/**
 				 * TODO: Log this
@@ -151,6 +156,14 @@ public class PhotographDocument extends AbstractFileDocument implements RelateDo
 
 	public long getSize() {
 		return size;
+	}
+	
+	public long getStashSize() {
+		return stashSize;
+	}
+
+	public void setStashSize(long stashSize) {
+		this.stashSize = stashSize;
 	}
 
 	public Long getDateTaken() {
@@ -191,6 +204,7 @@ public class PhotographDocument extends AbstractFileDocument implements RelateDo
 		photographNodeExtended.put("mimeType", getMimeType());
 		photographNodeExtended.put("size", getSize());
 		photographNodeExtended.put("squareSize", getSquareSize());
+		photographNodeExtended.put("stashSize", getStashSize());
 		
 		return photographNodeExtended;
 	}
