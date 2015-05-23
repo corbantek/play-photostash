@@ -10,7 +10,7 @@ import akka.actor.UntypedActor;
 import akka.japi.Creator;
 
 import com.ctrengine.photostash.database.PhotostashDatabase;
-import com.ctrengine.photostash.database.PhotostashDatabaseException;
+import com.ctrengine.photostash.database.DatabaseException;
 import com.ctrengine.photostash.models.AlbumDocument;
 import com.ctrengine.photostash.shoebox.ShoeboxMessages.InitializeMessage;
 import com.ctrengine.photostash.shoebox.ShoeboxMessages.OrganizeMessage;
@@ -63,7 +63,7 @@ public class AlbumActor extends UntypedActor {
 				albumDocument = new AlbumDocument(albumDirectory);
 				albumDocument = database.createDocument(albumDocument);
 			}
-		} catch (PhotostashDatabaseException e) {
+		} catch (DatabaseException e) {
 			final String message = "Unable to find/create albumDocument: '" + albumDirectory.getAbsolutePath() + "': " + e.getMessage();
 			Shoebox.LOGGER.error(message);
 			getContext().stop(getSelf());

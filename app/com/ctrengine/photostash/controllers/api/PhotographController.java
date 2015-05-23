@@ -9,7 +9,7 @@ import play.mvc.Controller;
 import play.mvc.Result;
 
 import com.ctrengine.photostash.database.PhotostashDatabase;
-import com.ctrengine.photostash.database.PhotostashDatabaseException;
+import com.ctrengine.photostash.database.DatabaseException;
 import com.ctrengine.photostash.models.PhotographDocument;
 import com.ctrengine.photostash.shoebox.Shoebox;
 import com.ctrengine.photostash.shoebox.ShoeboxMessages.PhotographRequestMessage;
@@ -26,7 +26,7 @@ public class PhotographController extends Controller {
 				photographNode.add(photographDocument.toJson(extended).put("link", routes.PhotographController.getPhotograph(photographDocument.getKey(), extended).absoluteURL(request())));
 			}
 			return ok(photographNode);
-		} catch (PhotostashDatabaseException e) {
+		} catch (DatabaseException e) {
 			return internalServerError(Json.newObject().put("message", e.getMessage()));
 		}
 	}
@@ -49,7 +49,7 @@ public class PhotographController extends Controller {
 				photogrphNode.put("images", photographImages);
 				return ok(photogrphNode);
 			}
-		} catch (PhotostashDatabaseException e) {
+		} catch (DatabaseException e) {
 			return internalServerError(Json.newObject().put("message", e.getMessage()));
 		}
 	}
@@ -76,7 +76,7 @@ public class PhotographController extends Controller {
 					}
 				});
 			}
-		} catch (final PhotostashDatabaseException e) {
+		} catch (final DatabaseException e) {
 			return Promise.promise(new Function0<Result>() {
 				@Override
 				public Status apply() throws Throwable {
@@ -113,7 +113,7 @@ public class PhotographController extends Controller {
 					});
 				}
 			}
-		} catch (final PhotostashDatabaseException e) {
+		} catch (final DatabaseException e) {
 			return Promise.promise(new Function0<Result>() {
 				@Override
 				public Status apply() throws Throwable {

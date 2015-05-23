@@ -6,7 +6,7 @@ import play.mvc.Controller;
 import play.mvc.Result;
 
 import com.ctrengine.photostash.database.PhotostashDatabase;
-import com.ctrengine.photostash.database.PhotostashDatabaseException;
+import com.ctrengine.photostash.database.DatabaseException;
 import com.ctrengine.photostash.models.AlbumDocument;
 import com.ctrengine.photostash.models.StoryDocument;
 import com.fasterxml.jackson.databind.node.ArrayNode;
@@ -21,7 +21,7 @@ public class AlbumController extends Controller {
 				albumsNode.add(albumDocument.toJson(extended).put("link", routes.AlbumController.getAlbum(albumDocument.getKey(), extended).absoluteURL(request())));
 			}
 			return ok(albumsNode);
-		} catch (PhotostashDatabaseException e) {
+		} catch (DatabaseException e) {
 			return internalServerError(Json.newObject().put("message", e.getMessage()));
 		}
 	}
@@ -47,7 +47,7 @@ public class AlbumController extends Controller {
 				albumNode.put("stories", storysNode);
 				return ok(albumNode);
 			}
-		} catch (PhotostashDatabaseException e) {
+		} catch (DatabaseException e) {
 			return internalServerError(Json.newObject().put("message", e.getMessage()));
 		}
 	}

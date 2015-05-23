@@ -73,13 +73,13 @@ public class StoryDocument extends AbstractFileDocument implements RelateDocumen
 		}
 		String key = "";
 		if (storyDate != null) {
-			key += DATE_FORMATTER.format(new Date(storyDate)) + "-";
+			key = DATE_FORMATTER.format(new Date(storyDate)) + "-" ;
 			if (storyEndDate != null) {
 				key += DATE_FORMATTER.format(new Date(storyEndDate)) + "-";
 			}
 		}
-		key += fileName.trim().replaceAll("[^A-Za-z\\-\\d\\s]+", "").replaceAll("\\s+-\\s+", "-").replaceAll("\\s+", "-").toLowerCase();
-		setKey(key);
+		key += fileName.trim();
+		setKey(key.replaceAll("[^A-Za-z\\-\\d\\s]+", "").replaceAll("\\s+-\\s+", "-").replaceAll("\\s+", "-").replaceAll("-+", "-").toLowerCase());
 	}
 
 	public String getDescription() {

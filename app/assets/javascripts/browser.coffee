@@ -19,9 +19,9 @@ class @Browser
 			if event.state?
 				if event.state.album?
 					if event.state.story?
-						@displayStory(event.state.album, event.state.story)
+						@displayPhotographs(event.state.album, event.state.story)
 					else
-						@displayAlbum(event.state.album)
+						@displayStories(event.state.album)
 				else
 					@displayAlbums()
 			else
@@ -42,7 +42,7 @@ class @Browser
 							url: jsRoutesAlbumController.com.ctrengine.photostash.controllers.api.AlbumController.getAlbum(parameter[1]).url,
 							dataType: 'json'
 							, success: (album) =>		
-								@displayAlbum(album)
+								@displayStories(album)
 								return
 							, error: (jqXHR, textStatus, errorThrown) ->
 								@displayAlbums()
@@ -55,7 +55,7 @@ class @Browser
 							url: jsRoutesStoryController.com.ctrengine.photostash.controllers.api.StoryController.getStory(parameter[1]).url,
 							dataType: 'json'
 							, success: (story) =>		
-								@displayStory(null, story)
+								@displayPhotographs(null, story)
 								return
 							, error: (jqXHR, textStatus, errorThrown) ->
 								@displayAlbums()
@@ -80,7 +80,7 @@ class @Browser
 					albumLink = $('<a class="list-group-item">')
 					albumLink.text(album.name)
 					albumLink.click({album: album}, (event) =>
-						@displayAlbum(event.data.album)
+						@displayStories(event.data.album)
 						history.pushState({album: album}, null, '#albumId='+album.albumId)
 					)
 					@photostashAlbumList.append(albumLink)
@@ -90,7 +90,7 @@ class @Browser
 		})
 		return
 
-	displayAlbum: (album) ->
+	displayStories: (album) ->
 		# Setup Breadcrumb
 		@breadcrumb.empty()
 		@breadcrumb.append(@breadcrumbHome)
@@ -116,8 +116,8 @@ class @Browser
 					storyLink.append($('<img src="'+story.coverLink+'/resize/180" alt="'+story.name+'" class="img-rounded">')).append($('<div class="caption">)').append($('<h5>').text(story.name))) 
 					storyCover.append(storyLink)
 					storyLink.click({album: singleAlbum, story: story}, (event) =>
-						@displayStory(event.data.album, event.data.story)
-						history.pushState({album: album, story: story}, null, '#storyId='+story.storyId)
+						@displayPhotographs(event.data.album, event.data.story)
+						history.pushState({album: event.data.album, story: event.data.story}, null, '#storyId='+event.data.story.storyId)
 					)
 					@photostashStories.append(storyCover)
 				
@@ -127,7 +127,7 @@ class @Browser
 		})
 		return
 
-	displayStory: (album, story) ->
+	displayPhotographs: (album, story) ->
 		# Setup Breadcrumb
 		@breadcrumb.empty()
 		@breadcrumb.append(@breadcrumbHome)
@@ -135,7 +135,7 @@ class @Browser
 		if album?
 			breadcrumbAlbum = $('<li>').append($('<a>').text(album.name))
 			breadcrumbAlbum.click({album: album}, (event) =>
-				@displayAlbum(event.data.album)
+				@displayStories(event.data.album)
 				history.pushState({album: album}, null, '#albumId='+album.albumId)
 			)
 			@breadcrumb.append(breadcrumbAlbum)
@@ -155,8 +155,12 @@ class @Browser
 			, success: (singleStory) =>
 				@photostashGallery.empty()
 				for photograph in singleStory.photographs
-					photographLink = $('<a href="'+photograph.link+'/image/resize/800" data-toggle="lightbox" data-gallery="'+story.storyId+'" data-title="'+photograph.name+'" data-type="image" class="col-sm-4">')
-					photographLink.append($('<img src="'+photograph.link+'/image/resize/360" class="img-responsive" style="width: 360px">'))
+					title = photograph.name
+					if photograph.dateTaken?
+						dateTaken = new Date(photograph.dateTaken)
+						title = $.format.date(dateTaken, "MM.dd.yyyy HH:mm ") + "<br/>" + title
+					photographLink = $('<a href="'+photograph.link+'/image/resize/1024" data-toggle="lightbox" data-gallery="'+story.storyId+'" data-title="'+title+'" data-type="image" class="col-sm-4">')
+					photographLink.append($('<img src="'+photograph.link+'/image/resize/360" class="img-responsive img-thumbnail" style="max-width: 360px; max-height: 270px;">'))
 					@photostashGallery.append(photographLink)
 				return
 			, error: (jqXHR, textStatus, errorThrown) ->

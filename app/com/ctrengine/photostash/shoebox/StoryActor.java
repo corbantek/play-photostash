@@ -9,7 +9,7 @@ import akka.actor.UntypedActor;
 import akka.japi.Creator;
 
 import com.ctrengine.photostash.database.PhotostashDatabase;
-import com.ctrengine.photostash.database.PhotostashDatabaseException;
+import com.ctrengine.photostash.database.DatabaseException;
 import com.ctrengine.photostash.models.AlbumDocument;
 import com.ctrengine.photostash.models.DocumentException;
 import com.ctrengine.photostash.models.PhotographDocument;
@@ -66,7 +66,7 @@ public class StoryActor extends UntypedActor {
 				Shoebox.LOGGER.debug("AlbumDocument: " + albumDocument + " StoryDocument:" + storyDocument);
 				database.relateDocumentToDocument(albumDocument, storyDocument);
 			}
-		} catch (PhotostashDatabaseException e) {
+		} catch (DatabaseException e) {
 			final String message = "Unable to find/create/link storyDocument '" + storyDirectory.getAbsolutePath() + "': " + e.getMessage();
 			Shoebox.LOGGER.error(message);
 			getContext().stop(getSelf());
@@ -86,7 +86,7 @@ public class StoryActor extends UntypedActor {
 					storyDocument.setCoverPhotographKey(photographDocument.getKey());
 					try {
 						database.updateDocument(storyDocument);
-					} catch (PhotostashDatabaseException e) {
+					} catch (DatabaseException e) {
 						final String message = "Unable to update storyDocument '" + photographFile.getAbsolutePath() + "': " + e.getMessage();
 						Shoebox.LOGGER.error(message);
 					}
@@ -111,7 +111,7 @@ public class StoryActor extends UntypedActor {
 				database.relateDocumentToDocument(storyDocument, photographDocument);
 			}
 			return photographDocument;
-		} catch (PhotostashDatabaseException | DocumentException e) {
+		} catch (DatabaseException | DocumentException e) {
 			final String message = "Unable to find/create/link storyDocument '" + photographFile.getAbsolutePath() + "': " + e.getMessage();
 			Shoebox.LOGGER.error(message);
 			return null;

@@ -40,7 +40,7 @@ public enum PhotostashDatabase {
 		genesisComplete = false;
 	}
 
-	private void verifyDatabaseDriver() throws PhotostashDatabaseException {
+	private void verifyDatabaseDriver() throws DatabaseException {
 		if (photostashArangoDriver == null) {
 			/**
 			 * Need to create database connection
@@ -50,7 +50,7 @@ public enum PhotostashDatabase {
 				/**
 				 * Database creation failure
 				 */
-				throw new PhotostashDatabaseException("ERROR: Could not connect to database: " + DatabaseConfiguration.INSTANCE.toString());
+				throw new DatabaseException("ERROR: Could not connect to database: " + DatabaseConfiguration.INSTANCE.toString());
 			} else {
 				if (!genesisComplete) {
 					/**
@@ -58,7 +58,7 @@ public enum PhotostashDatabase {
 					 */
 					genesisDatabase();
 					if (!genesisComplete) {
-						throw new PhotostashDatabaseException("ERROR: Could not create default Photostash database architecture.");
+						throw new DatabaseException("ERROR: Could not create default Photostash database architecture.");
 					}
 				}
 			}
@@ -144,52 +144,52 @@ public enum PhotostashDatabase {
 		}
 	}
 
-	public List<AlbumDocument> getAlbums() throws PhotostashDatabaseException {
+	public List<AlbumDocument> getAlbums() throws DatabaseException {
 		return getDocuments(AlbumDocument.COLLECTION, AlbumDocument.class);
 	}
 
-	public AlbumDocument getAlbum(String albumId) throws PhotostashDatabaseException {
+	public AlbumDocument getAlbum(String albumId) throws DatabaseException {
 		return getDocument(AlbumDocument.COLLECTION, albumId, AlbumDocument.class);
 	}
 
-	public AlbumDocument findAlbum(String path) throws PhotostashDatabaseException {
+	public AlbumDocument findAlbum(String path) throws DatabaseException {
 		return findPathDocument(AlbumDocument.COLLECTION, path, AlbumDocument.class);
 	}
 
-	public StoryDocument getStory(String storyId) throws PhotostashDatabaseException {
+	public StoryDocument getStory(String storyId) throws DatabaseException {
 		return getDocument(StoryDocument.COLLECTION, storyId, StoryDocument.class);
 	}
 
-	public List<StoryDocument> getStories() throws PhotostashDatabaseException {
+	public List<StoryDocument> getStories() throws DatabaseException {
 		return getDocuments(StoryDocument.COLLECTION, StoryDocument.class);
 	}
 
-	public StoryDocument findStory(String path) throws PhotostashDatabaseException {
+	public StoryDocument findStory(String path) throws DatabaseException {
 		return findPathDocument(StoryDocument.COLLECTION, path, StoryDocument.class);
 	}
 
-	public PhotographDocument getPhotograph(String photographId) throws PhotostashDatabaseException {
+	public PhotographDocument getPhotograph(String photographId) throws DatabaseException {
 		return getDocument(PhotographDocument.COLLECTION, photographId, PhotographDocument.class);
 	}
 
-	public List<PhotographDocument> getPhotographs() throws PhotostashDatabaseException {
+	public List<PhotographDocument> getPhotographs() throws DatabaseException {
 		return getDocuments(PhotographDocument.COLLECTION, PhotographDocument.class);
 	}
 
-	public PhotographDocument findPhotograph(String path) throws PhotostashDatabaseException {
+	public PhotographDocument findPhotograph(String path) throws DatabaseException {
 		return findPathDocument(PhotographDocument.COLLECTION, path, PhotographDocument.class);
 	}
 	
-	public <D extends Document> D createDocument(D document) throws PhotostashDatabaseException {
+	public <D extends Document> D createDocument(D document) throws DatabaseException {
 		verifyDatabaseDriver();
 		try {
 			return photostashArangoDriver.createDocument(document.getCollection(), document).getEntity();
 		} catch (ArangoException e) {
-			throw new PhotostashDatabaseException(e);
+			throw new DatabaseException(e);
 		}
 	}
 	
-	public <D extends Document> D updateDocument(D document) throws PhotostashDatabaseException {
+	public <D extends Document> D updateDocument(D document) throws DatabaseException {
 		verifyDatabaseDriver();
 		try {
 			/**
@@ -197,22 +197,22 @@ public enum PhotostashDatabase {
 			 */
 			return (D)photostashArangoDriver.updateDocument(document.getCollection(), document.getKey(), document).getEntity();
 		} catch (ArangoException e) {
-			throw new PhotostashDatabaseException(e);
+			throw new DatabaseException(e);
 		}
 	}
 
-	public <R extends RelateDocument, D extends Document> List<D> getRelatedDocuments(R relateDocument, Class<D> clazz) throws PhotostashDatabaseException {
+	public <R extends RelateDocument, D extends Document> List<D> getRelatedDocuments(R relateDocument, Class<D> clazz) throws DatabaseException {
 		return getRelatedDocuments(relateDocument, clazz, null);
 	}
 
-	public <R extends RelateDocument, D extends Document> List<D> getRelatedDocuments(R relateDocument, Class<D> clazz, Map<String, Object> filter) throws PhotostashDatabaseException {
+	public <R extends RelateDocument, D extends Document> List<D> getRelatedDocuments(R relateDocument, Class<D> clazz, Map<String, Object> andFilter) throws DatabaseException {
 		verifyDatabaseDriver();
 		String queryRelate = "FOR a in NEIGHBORS(" + relateDocument.getCollection() + ", " + relateDocument.getRelateCollection() + ", @id, 'outbound') ";
 		MapBuilder bindVars = new MapBuilder().put("id", relateDocument.getDocumentAddress());
-		if (filter != null && !filter.isEmpty()) {
+		if (andFilter != null && !andFilter.isEmpty()) {
 			queryRelate += "FILTER";
 			boolean firstFilter = true;
-			for (Entry<String, Object> entry : filter.entrySet()) {
+			for (Entry<String, Object> entry : andFilter.entrySet()) {
 				if (firstFilter) {
 					queryRelate += " ";
 					firstFilter = false;
@@ -227,32 +227,32 @@ public enum PhotostashDatabase {
 		try { 
 			return photostashArangoDriver.executeDocumentQuery(queryRelate, bindVars.get(), photostashArangoDriver.getDefaultAqlQueryOptions(), clazz).asEntityList();
 		} catch (ArangoException e) {
-			throw new PhotostashDatabaseException(queryRelate + " " + e);
+			throw new DatabaseException(queryRelate + " " + e);
 		}
 	}
 
-	public <R extends RelateDocument, D extends Document> void relateDocumentToDocument(R relateDocument, D document) throws PhotostashDatabaseException {
+	public <R extends RelateDocument, D extends Document> void relateDocumentToDocument(R relateDocument, D document) throws DatabaseException {
 		verifyDatabaseDriver();
 		try {
 			LOGGER.debug(relateDocument.getRelateCollection() + ": " + relateDocument.getDocumentAddress() + " -> " + document.getDocumentAddress());
 			photostashArangoDriver.createEdge(DatabaseConfiguration.INSTANCE.getDatabase(), relateDocument.getRelateCollection(), new Object(), relateDocument.getDocumentAddress(), document.getDocumentAddress(), false, false);
 		} catch (ArangoException e) {
-			throw new PhotostashDatabaseException(e);
+			throw new DatabaseException(e);
 		}
 	}
 
-	private <D extends Document> List<D> getDocuments(String collection, Class<D> clazz) throws PhotostashDatabaseException {
+	private <D extends Document> List<D> getDocuments(String collection, Class<D> clazz) throws DatabaseException {
 		verifyDatabaseDriver();
 		try {
 			List<D> documentList = photostashArangoDriver.executeSimpleAllDocuments(collection, 0, 0, clazz).asEntityList();
 			Collections.sort(documentList);
 			return documentList;
 		} catch (ArangoException e) {
-			throw new PhotostashDatabaseException(e);
+			throw new DatabaseException(e);
 		}
 	}
 
-	private <D extends FileDocument> D findPathDocument(String collection, String path, Class<D> clazz) throws PhotostashDatabaseException {
+	private <D extends FileDocument> D findPathDocument(String collection, String path, Class<D> clazz) throws DatabaseException {
 		verifyDatabaseDriver();
 		final String QUERY_PATH = "FOR a IN " + collection + " FILTER a." + FileDocument.PATH + " == @path RETURN a";
 		try {
@@ -264,16 +264,16 @@ public enum PhotostashDatabase {
 				return null;
 			}
 		} catch (ArangoException e) {
-			throw new PhotostashDatabaseException(e);
+			throw new DatabaseException(e);
 		}
 	}
 
-	private <D extends Document> D getDocument(String collection, String id, Class<D> clazz) throws PhotostashDatabaseException {
+	private <D extends Document> D getDocument(String collection, String id, Class<D> clazz) throws DatabaseException {
 		verifyDatabaseDriver();
 		try {
 			return photostashArangoDriver.getDocument(collection, id, clazz).getEntity();
 		} catch (ArangoException e) {
-			throw new PhotostashDatabaseException(e);
+			throw new DatabaseException(e);
 		}
 	}
 }

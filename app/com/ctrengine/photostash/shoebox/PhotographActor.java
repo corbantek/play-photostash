@@ -17,7 +17,7 @@ import org.imgscalr.Scalr;
 import akka.actor.UntypedActor;
 
 import com.ctrengine.photostash.database.PhotostashDatabase;
-import com.ctrengine.photostash.database.PhotostashDatabaseException;
+import com.ctrengine.photostash.database.DatabaseException;
 import com.ctrengine.photostash.models.PhotographCacheDocument;
 import com.ctrengine.photostash.models.PhotographDocument;
 import com.ctrengine.photostash.shoebox.ShoeboxMessages.PhotographRequestMessage;
@@ -62,48 +62,53 @@ public class PhotographActor extends UntypedActor {
 		PhotographDocument photographDocument = photographResizeRequestMessage.getPhotographDocument();
 		int squareSize = photographResizeRequestMessage.getSquareSize();
 
-		/**
-		 * Look in cache for photograph
-		 */
-		Map<String, Object> filter = new TreeMap<String, Object>();
-		filter.put(PhotographCacheDocument.SQUARE_SIZE, squareSize);
-		PhotographCacheDocument photographCacheDocument = null;
-		try {
-			List<PhotographCacheDocument> photographCacheDocuments = database.getRelatedDocuments(photographDocument, PhotographCacheDocument.class, filter);
-			if (!photographCacheDocuments.isEmpty()) {
-				if (photographCacheDocuments.size() == 1) {
-					photographCacheDocument = photographCacheDocuments.get(0);
-				} else {
-					/**
-					 * TODO: Why is there more than one???
-					 */
-				}
-			}
-		} catch (PhotostashDatabaseException e) {
-			final String message = "Unable to find PhotographCacheDocument for '" + photographDocument.getKey() + "': " + e.getMessage();
-			Shoebox.LOGGER.error(message);
-		}
-		if (photographCacheDocument != null) {
-			/**
-			 * Send Cached Photograph
-			 */
-			getSender().tell(new PhotographResponseMessage(photographCacheDocument.getPhotograph(), photographDocument.getMimeType()), getSelf());
+		if (photographDocument.getSquareSize() <= squareSize) {
+			readPhotographFromDisk(new PhotographRequestMessage(photographDocument));
 		} else {
+
 			/**
-			 * Generate Cached Photograph 
+			 * Look in cache for photograph
 			 */
-			photographCacheDocument = generatePhotograph(photographDocument, squareSize);
+			Map<String, Object> filter = new TreeMap<String, Object>();
+			filter.put(PhotographCacheDocument.SQUARE_SIZE, squareSize);
+			PhotographCacheDocument photographCacheDocument = null;
+			try {
+				List<PhotographCacheDocument> photographCacheDocuments = database.getRelatedDocuments(photographDocument, PhotographCacheDocument.class, filter);
+				if (!photographCacheDocuments.isEmpty()) {
+					if (photographCacheDocuments.size() == 1) {
+						photographCacheDocument = photographCacheDocuments.get(0);
+					} else {
+						/**
+						 * TODO: Why is there more than one???
+						 */
+					}
+				}
+			} catch (DatabaseException e) {
+				final String message = "Unable to find PhotographCacheDocument for '" + photographDocument.getKey() + "': " + e.getMessage();
+				Shoebox.LOGGER.error(message);
+			}
 			if (photographCacheDocument != null) {
-				getSender().tell(new PhotographResponseMessage(photographCacheDocument.getPhotograph(), photographDocument.getMimeType()), getSelf());
 				/**
-				 * Save to Database
+				 * Send Cached Photograph
 				 */
-				writePhotographCacheToDatabase(photographDocument, photographCacheDocument);
+				getSender().tell(new PhotographResponseMessage(photographCacheDocument.getPhotograph(), photographDocument.getMimeType()), getSelf());
 			} else {
 				/**
-				 * TODO Need to remove photograph from database...
+				 * Generate Cached Photograph
 				 */
-				getSender().tell(photographDocument.getName() + " could not be read or is not a resizable image format.", getSelf());
+				photographCacheDocument = generatePhotograph(photographDocument, squareSize);
+				if (photographCacheDocument != null) {
+					getSender().tell(new PhotographResponseMessage(photographCacheDocument.getPhotograph(), photographDocument.getMimeType()), getSelf());
+					/**
+					 * Save to Database
+					 */
+					writePhotographCacheToDatabase(photographDocument, photographCacheDocument);
+				} else {
+					/**
+					 * TODO Need to remove photograph from database...
+					 */
+					getSender().tell(photographDocument.getName() + " could not be read or is not a resizable image format.", getSelf());
+				}
 			}
 		}
 	}
@@ -145,7 +150,7 @@ public class PhotographActor extends UntypedActor {
 		try {
 			database.createDocument(photographCacheDocument);
 			database.relateDocumentToDocument(photographDocument, photographCacheDocument);
-		} catch (PhotostashDatabaseException e) {
+		} catch (DatabaseException e) {
 			final String message = "Unable to create/link PhotographCacheDocument for '" + photographDocument.getKey() + "': " + e.getMessage();
 			Shoebox.LOGGER.error(message);
 		}
