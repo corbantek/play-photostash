@@ -32,7 +32,7 @@ public class ShoeboxActor extends UntypedActor {
 	private ActorRef albumRouter;
 
 	private ShoeboxActor() {
-		photographRouter = getContext().actorOf(new RoundRobinPool(10).props(Props.create(PhotographActor.class)), "photograph-router");
+		photographRouter = getContext().actorOf(new RoundRobinPool(20).props(Props.create(PhotographActor.class)), "photograph-router");
 		albumRouter = getContext().actorOf(new RoundRobinPool(2).props(Props.create(AlbumActor.class)), "album-router");
 	}
 

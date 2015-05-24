@@ -32,7 +32,7 @@ public abstract class AbstractDocument implements Document {
 		return _key;
 	}
 	
-	protected void setKey(String key){
+	public void setKey(String key){
 		this._key = key;
 	}
 	

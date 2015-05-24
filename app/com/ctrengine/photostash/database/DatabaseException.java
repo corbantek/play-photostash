@@ -1,13 +1,17 @@
 package com.ctrengine.photostash.database;
 
-public class DatabaseException extends Exception {
+import com.arangodb.ArangoException;
+import com.arangodb.entity.BaseEntity;
+
+public class DatabaseException extends ArangoException {
+	private static final long serialVersionUID = 5538351870152319346L;
 
 	public DatabaseException() {
 		super();
 	}
 
-	public DatabaseException(String message, Throwable cause, boolean enableSuppression, boolean writableStackTrace) {
-		super(message, cause, enableSuppression, writableStackTrace);
+	public DatabaseException(BaseEntity entity) {
+		super(entity);
 	}
 
 	public DatabaseException(String message, Throwable cause) {
@@ -21,5 +25,6 @@ public class DatabaseException extends Exception {
 	public DatabaseException(Throwable cause) {
 		super(cause);
 	}
+
 
 }

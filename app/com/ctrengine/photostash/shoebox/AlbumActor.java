@@ -20,7 +20,7 @@ public class AlbumActor extends UntypedActor {
 
 	private AlbumActor() {
 		database = PhotostashDatabase.INSTANCE;
-		storyRouter = getContext().actorOf(new RoundRobinPool(4).props(Props.create(StoryActor.class)), "story-router");
+		storyRouter = getContext().actorOf(new RoundRobinPool(5).props(Props.create(StoryActor.class)), "story-router");
 	}
 
 	@Override

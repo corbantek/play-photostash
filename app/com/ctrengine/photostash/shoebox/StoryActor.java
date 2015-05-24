@@ -4,6 +4,7 @@ import java.io.File;
 
 import akka.actor.UntypedActor;
 
+import com.arangodb.ErrorNums;
 import com.ctrengine.photostash.database.DatabaseException;
 import com.ctrengine.photostash.database.PhotostashDatabase;
 import com.ctrengine.photostash.models.AlbumDocument;
@@ -11,6 +12,9 @@ import com.ctrengine.photostash.models.DocumentException;
 import com.ctrengine.photostash.models.PhotographDocument;
 import com.ctrengine.photostash.models.StoryDocument;
 import com.ctrengine.photostash.shoebox.ShoeboxMessages.OrganizeStoryMessage;
+import com.ctrengine.photostash.shoebox.ShoeboxMessages.PhotographRequestMessage;
+import com.ctrengine.photostash.shoebox.ShoeboxMessages.PhotographResizeRequestMessage;
+import com.ctrengine.photostash.shoebox.ShoeboxMessages.PhotographResponseMessage;
 
 public class StoryActor extends UntypedActor {
 	private final PhotostashDatabase database;
@@ -23,6 +27,10 @@ public class StoryActor extends UntypedActor {
 	public void onReceive(Object message) throws Exception {
 		if (message instanceof OrganizeStoryMessage) {
 			organize((OrganizeStoryMessage) message);
+		}else if (message instanceof PhotographResponseMessage) {
+			/*
+			 * Do nothing
+			 */
 		} else {
 			unhandled(message);
 		}
@@ -32,23 +40,46 @@ public class StoryActor extends UntypedActor {
 		/**
 		 * Verify storyDocument has a database entry
 		 */
-		try {
-			StoryDocument storyDocument = database.findStory(storyDirectory.getAbsolutePath());
+		StoryDocument storyDocument = null;
+			try {
+				storyDocument = database.findStory(storyDirectory.getAbsolutePath());
+			} catch (DatabaseException e) {
+				final String message = "Unable to find storyDocument '" + storyDirectory.getAbsolutePath() + "': " + e.getMessage();
+				Shoebox.LOGGER.warn(message);
+			}
 			if (storyDocument == null) {
-				/**
-				 * Create new AlbumDocument Record
-				 */
 				storyDocument = new StoryDocument(storyDirectory);
-				storyDocument = database.createDocument(storyDocument);
-				Shoebox.LOGGER.debug("AlbumDocument: " + albumDocument + " StoryDocument:" + storyDocument);
-				database.relateDocumentToDocument(albumDocument, storyDocument);
+				try {
+					createAndRelateStoryDocument(albumDocument, storyDocument);
+				} catch (DatabaseException e) {
+					if(e.getErrorNumber() == ErrorNums.ERROR_ARANGO_UNIQUE_CONSTRAINT_VIOLATED){
+						Shoebox.LOGGER.warn("Duplicate Story Key Detected: Adding AlbumKey to StoryKey");
+						storyDocument.setKey(albumDocument.getKey()+"-"+storyDocument.getKey());
+						try {
+							createAndRelateStoryDocument(albumDocument, storyDocument);
+						} catch (DatabaseException e1) {
+							final String message = "Unable to create/link storyDocument '" + storyDirectory.getAbsolutePath() + "': " + e.getMessage();
+							Shoebox.LOGGER.error(message);
+							throw new ShoeboxException(message);
+						}
+					}else{
+						final String message = "Unable to create/link storyDocument '" + storyDirectory.getAbsolutePath() + "': " + e.getMessage();
+						Shoebox.LOGGER.error(message);
+						throw new ShoeboxException(message);
+					}
+				}
 			}
 			return storyDocument;
-		} catch (DatabaseException e) {
-			final String message = "Unable to find/create/link storyDocument '" + storyDirectory.getAbsolutePath() + "': " + e.getMessage();
-			Shoebox.LOGGER.error(message);
-			throw new ShoeboxException(message);
-		}
+	}
+	
+	private StoryDocument createAndRelateStoryDocument(AlbumDocument albumDocument, StoryDocument storyDocument) throws DatabaseException {
+		/**
+		 * Create new StoryDocument Record
+		 */
+		storyDocument = database.createDocument(storyDocument);
+		Shoebox.LOGGER.debug("AlbumDocument: " + albumDocument + " StoryDocument:" + storyDocument);
+		database.relateDocumentToDocument(albumDocument, storyDocument);
+		return storyDocument;
 	}
 
 	private void organize(OrganizeStoryMessage organizeMessage) {
@@ -72,6 +103,10 @@ public class StoryActor extends UntypedActor {
 						if (coverPhotographKey == null) {
 							coverPhotographKey = photographDocument.getKey();
 						}
+						/**
+						 * Create a default resize image of 1024 to speed up initial content delivery
+						 */
+						//Shoebox.INSTANCE.getShoeboxActor().tell(new PhotographResizeRequestMessage(photographDocument, 1024), getSelf());
 					}
 				}
 			}
@@ -99,25 +134,51 @@ public class StoryActor extends UntypedActor {
 
 	private PhotographDocument verifyPhotograph(final StoryDocument storyDocument, final File photographFile) {
 		/**
-		 * Verify storyDocument has a database entry
+		 * Verify Photograph has a database entry
 		 */
-		try {
-			PhotographDocument photographDocument = database.findPhotograph(photographFile.getAbsolutePath());
-			if (photographDocument == null) {
-				/**
-				 * Create new PhotographDocument Record
-				 */
-				photographDocument = new PhotographDocument(photographFile);
-				photographDocument = database.createDocument(photographDocument);
-				Shoebox.LOGGER.debug("StoryDocument: " + storyDocument + " PhotographDocument:" + photographDocument);
-				database.relateDocumentToDocument(storyDocument, photographDocument);
+		PhotographDocument photographDocument = null;
+			try {
+				photographDocument = database.findPhotograph(photographFile.getAbsolutePath());
+			} catch (DatabaseException e) {
+				final String message = "Unable to find storyDocument '" + photographFile.getAbsolutePath() + "': " + e.getMessage();
+				Shoebox.LOGGER.warn(message);
+			}
+			try {
+				if (photographDocument == null) {
+					photographDocument = new PhotographDocument(photographFile);
+					try {
+						createAndRelatePhotographDocument(storyDocument, photographDocument);
+					} catch (DatabaseException e) {
+						if(e.getErrorNumber() == ErrorNums.ERROR_ARANGO_UNIQUE_CONSTRAINT_VIOLATED){
+							Shoebox.LOGGER.warn("Duplicate Story Key Detected: Adding AlbumKey to StoryKey");
+							photographDocument.setKey(storyDocument.getKey()+"-"+photographDocument.getKey());
+							try {
+								createAndRelatePhotographDocument(storyDocument, photographDocument);
+							} catch (DatabaseException e1) {
+								final String message = "Unable to create/link photographDocument '" + photographFile.getAbsolutePath() + "': " + e.getMessage();
+								Shoebox.LOGGER.error(message);
+							}
+						}else{
+							final String message = "Unable to create/link photographDocument '" + photographFile.getAbsolutePath() + "': " + e.getMessage();
+							Shoebox.LOGGER.error(message);
+						}
+					}
+				}
+			} catch (DocumentException e) {
+				final String message = "Unable to create photographDocument '" + photographFile.getAbsolutePath() + "': " + e.getMessage();
+				Shoebox.LOGGER.error(message);
 			}
 			return photographDocument;
-		} catch (DatabaseException | DocumentException e) {
-			final String message = "Unable to find/create/link photographDocument '" + photographFile.getAbsolutePath() + "': " + e.getMessage();
-			Shoebox.LOGGER.error(message);
-			return null;
-		}
+	}
+	
+	private PhotographDocument createAndRelatePhotographDocument(StoryDocument storyDocument, PhotographDocument photographDocument) throws DatabaseException {
+		/**
+		 * Create new Photograph Record
+		 */
+		photographDocument = database.createDocument(photographDocument);
+		Shoebox.LOGGER.debug("StoryDocument: " + storyDocument + " PhotographDocument:" + photographDocument);
+		database.relateDocumentToDocument(storyDocument, photographDocument);
+		return photographDocument;
 	}
 
 }
