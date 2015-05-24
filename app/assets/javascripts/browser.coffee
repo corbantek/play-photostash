@@ -1,10 +1,5 @@
 class @Browser
 	constructor: ->
-		#Bootup Lightbox
-		$(document).delegate('*[data-toggle="lightbox"]', 'click', (event) ->
-			event.preventDefault()
-			$(this).ekkoLightbox()
-		)
 		@breadcrumb = $('#photostash-breadcrumb')
 		@breadcrumbHome = $('#photostash-breadcrumb-home')
 		@breadcrumbAlbum = null
@@ -67,7 +62,11 @@ class @Browser
 
 	displayAlbums: ->
 		@photostashStories.hide()
+		@photostashStories.empty()
+
 		@photostashGallery.hide()
+		@photostashGallery.empty()
+
 		@photostashAlbumList.show()
 		@photostashAlbumList.empty()
 		$.ajax({
@@ -98,9 +97,11 @@ class @Browser
 		breadcrumbAlbum = $('<li class="active">').text(album.name)
 		@breadcrumb.append(breadcrumbAlbum)
 
-		# Hide Album List
 		@photostashAlbumList.hide()
+		@photostashAlbumList.empty()
+
 		@photostashGallery.hide()
+		@photostashGallery.empty()
 
 		@photostashStories.show()
 		$.ajax({
@@ -145,10 +146,12 @@ class @Browser
 		breadcrumbStory = $('<li class="active">').text(story.name)
 		@breadcrumb.append(breadcrumbStory)
 
-		# Hide Story List
-		@photostashStories.hide()
+		@photostashAlbumList.hide()
+		@photostashAlbumList.empty()
 
-		@photostashGallery.empty()
+		@photostashStories.hide()
+		@photostashStories.empty()
+
 		@photostashGallery.show()
 		$.ajax({
 			method: 'GET',
@@ -158,13 +161,21 @@ class @Browser
 			, success: (singleStory) =>
 				@photostashGallery.empty()
 				for photograph in singleStory.photographs
-					title = photograph.name
+					title = "Title: "+photograph.name
 					if photograph.dateTaken?
 						dateTaken = new Date(photograph.dateTaken)
-						title = $.format.date(dateTaken, "MM.dd.yyyy HH:mm ") + "<br/>" + title
-					photographLink = $('<a href="'+photograph.link+'/image/resize/1024" data-toggle="lightbox" data-gallery="'+story.storyId+'" data-title="'+title+'" data-type="image" class="col-sm-4">')
+						title = "Taken: " + $.format.date(dateTaken, "MM.dd.yyyy HH:mm ") + " -- "+title
+					photographLink = $('<a href="'+photograph.link+'/image/resize/1024" rel="'+story.storyId+'" class="fancybox col-sm-4" title="'+title+'">')
+					#photographLink = $('<a href="'+photograph.link+'/image/resize/1024" rel="group" class="fancybox">')
 					photographLink.append($('<img src="'+photograph.link+'/image/resize/360" class="img-responsive img-thumbnail" style="max-width: 360px; max-height: 270px;">'))
 					@photostashGallery.append(photographLink)
+					# Setup Fancybox
+					$(".fancybox").fancybox({
+						type: 'image',
+						afterLoad: ->
+							originalImageLink = @.href.split("/resize")
+							@.title = '<a href="'+originalImageLink[0]+'">Download</a> '+@.title
+					})
 				return
 			, error: (jqXHR, textStatus, errorThrown) ->
 				return
