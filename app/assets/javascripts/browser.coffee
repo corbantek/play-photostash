@@ -115,7 +115,7 @@ class @Browser
 					storyCover = $('<div class="col-sm-6 col-md-3">')
 					storyLink = $('<a class="thumbnail">')
 					if story.coverLink?
-						storyLink.append($('<img src="'+story.coverLink+'/resize/180" alt="'+story.name+'" class="img-rounded">')).append($('<div class="caption">)').append($('<h5>').text(story.name))) 
+						storyLink.append($('<img src="'+story.coverLink+'/resize/180" alt="'+story.name+'" class="img-rounded" style="max-width: 180px; max-height: 180px;">')).append($('<div class="caption">)').append($('<h6>').text(story.name))) 
 					else
 						storyLink.append($('<div class="caption">)').append($('<h5>').text(story.name))) 
 					storyCover.append(storyLink)
@@ -167,7 +167,7 @@ class @Browser
 						title = "Taken: " + $.format.date(dateTaken, "MM.dd.yyyy HH:mm ") + " -- "+title
 					photographLink = $('<a href="'+photograph.link+'/image/resize/1024" rel="'+story.storyId+'" class="fancybox col-sm-4" title="'+title+'">')
 					#photographLink = $('<a href="'+photograph.link+'/image/resize/1024" rel="group" class="fancybox">')
-					photographLink.append($('<img src="'+photograph.link+'/image/resize/360" class="img-responsive img-thumbnail" style="max-width: 360px; max-height: 270px;">'))
+					photographLink.append($('<img src="'+photograph.link+'/image/resize/360" class="img-responsive img-thumbnail" style="max-width: 360px; max-height: 360px;">'))
 					@photostashGallery.append(photographLink)
 					# Setup Fancybox
 					$(".fancybox").fancybox({
