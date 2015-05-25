@@ -149,6 +149,7 @@ public class StoryActor extends UntypedActor {
 					try {
 						createAndRelatePhotographDocument(storyDocument, photographDocument);
 					} catch (DatabaseException e) {
+						Shoebox.LOGGER.error(e.getErrorMessage()+" "+e.getErrorNumber() + "  "+ e.getCode() + " - "+ErrorNums.ERROR_ARANGO_UNIQUE_CONSTRAINT_VIOLATED);
 						if(e.getErrorNumber() == ErrorNums.ERROR_ARANGO_UNIQUE_CONSTRAINT_VIOLATED){
 							Shoebox.LOGGER.warn("Duplicate Story Key Detected: Adding AlbumKey to StoryKey");
 							photographDocument.setKey(storyDocument.getKey()+"-"+photographDocument.getKey());

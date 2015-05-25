@@ -27,7 +27,7 @@ public class PhotographDocument extends AbstractFileDocument implements RelateDo
 	public static final String RELATE_COLLECTION = "photographrelations";
 	private static final Pattern DATE_PATTERN = Pattern.compile("[0-1]\\d-[0-3]\\d-\\d\\d\\d\\d");
 	private static final Pattern DAY_MINUTE_SECOND_PATTERN = Pattern.compile("\\d\\d\\d\\d\\d\\d\\d\\d-\\d\\d\\d\\d");
-	
+
 	private transient final SimpleDateFormat DATE_PARSER = new SimpleDateFormat("MM-dd-yyyy");
 	private transient final SimpleDateFormat OLD_DATETIME_PARSER = new SimpleDateFormat("MMddyyyy-HHmm");
 	private transient final SimpleDateFormat DATETIME_PARSER = new SimpleDateFormat("yyyyMMdd-HHmm");
@@ -37,7 +37,7 @@ public class PhotographDocument extends AbstractFileDocument implements RelateDo
 	private int squareSize;
 	private long size;
 	private long stashSize;
-	
+
 	private Long dateTaken;
 
 	public PhotographDocument(File photographFile) throws DocumentException {
@@ -45,7 +45,7 @@ public class PhotographDocument extends AbstractFileDocument implements RelateDo
 		generatePhotographInfo(photographFile);
 		stashSize = 0;
 	}
-	
+
 	private void generatePhotographInfo(File file) throws DocumentException {
 		/**
 		 * Get the mimeType and photograph original size
@@ -60,7 +60,7 @@ public class PhotographDocument extends AbstractFileDocument implements RelateDo
 		} catch (IOException e) {
 			throw new DocumentException(e);
 		}
-		
+
 		try {
 			/**
 			 * Get Square Size
@@ -70,14 +70,13 @@ public class PhotographDocument extends AbstractFileDocument implements RelateDo
 		} catch (IOException e) {
 			throw new DocumentException(e);
 		}
-		
-		
+
 		/**
 		 * Figure out when the photograph was taken and generate key
 		 */
 		String fileName = file.getName().trim();
 		fileName = fileName.replaceAll("\\.\\w+$", "");
-		
+
 		/**
 		 * Support this weird old formats from ctrengine/corbantek history
 		 * 
@@ -90,26 +89,26 @@ public class PhotographDocument extends AbstractFileDocument implements RelateDo
 		Matcher findDayMinuteSecond = DAY_MINUTE_SECOND_PATTERN.matcher(fileName);
 		try {
 			if (findDayMinuteSecond.find()) {
-					String dayMinuteSecond = findDayMinuteSecond.group();
+				String dayMinuteSecond = findDayMinuteSecond.group();
+				/**
+				 * Test for old MMddyyyy
+				 */
+				int yearOrMonth = Integer.parseInt(dayMinuteSecond.substring(0, 4));
+				if (yearOrMonth <= 1231) {
 					/**
-					 * Test for old MMddyyyy
+					 * Old Date format with Month-Day-year
 					 */
-					int yearOrMonth = Integer.parseInt(dayMinuteSecond.substring(0, 4));
-					if(yearOrMonth <= 1231){
-						/**
-						 * Old Date format with Month-Day-year
-						 */
-						dateTaken = OLD_DATETIME_PARSER.parse(dayMinuteSecond).getTime();
-					}else{
-						/**
-						 * New Day format Year-Month-Day
-						 */
-						dateTaken = DATETIME_PARSER.parse(dayMinuteSecond).getTime();
-					}
-					fileName = fileName.substring(findDayMinuteSecond.end());
-			}else {
+					dateTaken = OLD_DATETIME_PARSER.parse(dayMinuteSecond).getTime();
+				} else {
+					/**
+					 * New Day format Year-Month-Day
+					 */
+					dateTaken = DATETIME_PARSER.parse(dayMinuteSecond).getTime();
+				}
+				fileName = fileName.substring(findDayMinuteSecond.end());
+			} else {
 				Matcher findDate = DATE_PATTERN.matcher(fileName);
-				if(findDate.find()){
+				if (findDate.find()) {
 					dateTaken = DATE_PARSER.parse(findDate.group()).getTime();
 					fileName = fileName.substring(findDate.end());
 				}
@@ -119,17 +118,22 @@ public class PhotographDocument extends AbstractFileDocument implements RelateDo
 			 * TODO Logging Message
 			 */
 		}
-		
+
 		/**
 		 * If dateTaken isn't from the filename, then look at the metadata
 		 */
-		if(dateTaken == null){
+		if (dateTaken == null) {
 			try {
 				Metadata metadata = ImageMetadataReader.readMetadata(file);
 				ExifSubIFDDirectory exifSubIFDDirectory = metadata.getFirstDirectoryOfType(ExifSubIFDDirectory.class);
-				Date date = exifSubIFDDirectory.getDate(ExifSubIFDDirectory.TAG_DATETIME_ORIGINAL);
-				if(date != null){
-					dateTaken = date.getTime();
+				if (exifSubIFDDirectory != null) {
+					Date date = exifSubIFDDirectory.getDate(ExifSubIFDDirectory.TAG_DATETIME_ORIGINAL);					
+					if (date != null) {
+						/**
+						 * TODO Fix Time Zone Issues
+						 */
+						dateTaken = date.getTime();
+					}
 				}
 			} catch (ImageProcessingException | IOException e) {
 				/**
@@ -137,10 +141,10 @@ public class PhotographDocument extends AbstractFileDocument implements RelateDo
 				 */
 			}
 		}
-		
+
 		String key = "";
-		if(dateTaken != null){
-			key = DATETIME_PARSER.format(new Date(dateTaken))+"-";
+		if (dateTaken != null) {
+			key = DATETIME_PARSER.format(new Date(dateTaken)) + "-";
 		}
 		key += fileName.trim();
 		setKey(key.replaceAll("[^A-Za-z\\-\\d\\s]+", "").replaceAll("\\s+-\\s+", "-").replaceAll("\\s+", "-").replaceAll("-+", "-").toLowerCase());
@@ -157,7 +161,7 @@ public class PhotographDocument extends AbstractFileDocument implements RelateDo
 	public long getSize() {
 		return size;
 	}
-	
+
 	public long getStashSize() {
 		return stashSize;
 	}
@@ -183,6 +187,17 @@ public class PhotographDocument extends AbstractFileDocument implements RelateDo
 	public String getCollection() {
 		return COLLECTION;
 	}
+	
+	@Override
+	public int compareTo(Document o) {
+		if (o instanceof PhotographDocument) {
+			PhotographDocument otherPhotographDocument = (PhotographDocument) o;
+			if (dateTaken != null && otherPhotographDocument.dateTaken != null) {
+				return dateTaken.compareTo(otherPhotographDocument.dateTaken);
+			}
+		}
+		return super.compareTo(o);
+	}
 
 	@Override
 	public ObjectNode toJson() {
@@ -205,7 +220,7 @@ public class PhotographDocument extends AbstractFileDocument implements RelateDo
 		photographNodeExtended.put("size", getSize());
 		photographNodeExtended.put("squareSize", getSquareSize());
 		photographNodeExtended.put("stashSize", getStashSize());
-		
+
 		return photographNodeExtended;
 	}
 }

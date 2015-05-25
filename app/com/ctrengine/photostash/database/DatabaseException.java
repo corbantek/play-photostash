@@ -1,9 +1,13 @@
 package com.ctrengine.photostash.database;
 
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 import com.arangodb.ArangoException;
 import com.arangodb.entity.BaseEntity;
 
 public class DatabaseException extends ArangoException {
+	private static final Pattern ERROR_PATTERN = Pattern.compile("\\[\\d+\\]");
 	private static final long serialVersionUID = 5538351870152319346L;
 
 	public DatabaseException() {
@@ -26,5 +30,18 @@ public class DatabaseException extends ArangoException {
 		super(cause);
 	}
 
+	@Override
+	public int getErrorNumber() {
+		String errorMessage = getErrorMessage();
+		Matcher matcher = ERROR_PATTERN.matcher(errorMessage);
+		if (matcher.find()) {
+			String errorNumber = errorMessage.substring(matcher.start() + 1, matcher.end() - 1);
+			try {
+				return Integer.parseInt(errorNumber);
+			} catch (NumberFormatException e) {
+			}
+		} 
+		return super.getErrorNumber();
+	}
 
 }

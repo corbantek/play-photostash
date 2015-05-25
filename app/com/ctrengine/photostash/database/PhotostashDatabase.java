@@ -232,7 +232,11 @@ public enum PhotostashDatabase {
 		}
 		queryRelate += "RETURN a.vertex";
 		try {
-			return photostashArangoDriver.executeDocumentQuery(queryRelate, bindVars.get(), photostashArangoDriver.getDefaultAqlQueryOptions(), clazz).asEntityList();
+			List<D> documentList = photostashArangoDriver.executeDocumentQuery(queryRelate, bindVars.get(), photostashArangoDriver.getDefaultAqlQueryOptions(), clazz).asEntityList();
+			if(sortByKey == null){
+				Collections.sort(documentList);
+			}
+			return documentList;
 		} catch (ArangoException e) {
 			throw new DatabaseException(queryRelate + " " + e);
 		}

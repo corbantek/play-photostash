@@ -13,10 +13,10 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 
 public class StoryDocument extends AbstractFileDocument implements RelateDocument {
 	private static final Pattern DATE_AND_DATE_RANGE_PATTERN = Pattern.compile("[0-1]\\d-[0-3]\\d-\\d\\d\\d\\d");
-	
+
 	public static final String COLLECTION = "storys";
 	public static final String RELATE_COLLECTION = "storyrelations";
-	
+
 	private transient final SimpleDateFormat DATE_PARSER = new SimpleDateFormat("MM-dd-yyyy");
 	private transient final SimpleDateFormat DATE_FORMATTER = new SimpleDateFormat("yyyyMMdd");
 
@@ -72,7 +72,7 @@ public class StoryDocument extends AbstractFileDocument implements RelateDocumen
 		}
 		String key = "";
 		if (storyDate != null) {
-			key = DATE_FORMATTER.format(new Date(storyDate)) + "-" ;
+			key = DATE_FORMATTER.format(new Date(storyDate)) + "-";
 			if (storyEndDate != null) {
 				key += DATE_FORMATTER.format(new Date(storyEndDate)) + "-";
 			}
@@ -132,5 +132,16 @@ public class StoryDocument extends AbstractFileDocument implements RelateDocumen
 	@Override
 	public String getRelateCollection() {
 		return RELATE_COLLECTION;
+	}
+
+	@Override
+	public int compareTo(Document o) {
+		if (o instanceof StoryDocument) {
+			StoryDocument otherStory = (StoryDocument) o;
+			if (storyDate != null && otherStory.storyDate != null) {
+				return storyDate.compareTo(otherStory.storyDate);
+			}
+		}
+		return super.compareTo(o);
 	}
 }

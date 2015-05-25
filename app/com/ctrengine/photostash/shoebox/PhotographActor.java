@@ -13,6 +13,7 @@ import java.util.List;
 import javax.imageio.ImageIO;
 
 import org.imgscalr.Scalr;
+import org.imgscalr.Scalr.Method;
 
 import akka.actor.UntypedActor;
 
@@ -132,18 +133,22 @@ public class PhotographActor extends UntypedActor {
 				String imageFormat = mimeType.substring(6, mimeType.length());
 
 				BufferedImage resizedImage = null;
+				Method method = Method.AUTOMATIC;
+				if(newSquareSize < 400){
+					method = Method.SPEED;
+				}
 				if (photographCacheDocument == null) {
 					/**
 					 * Resize from Disk
 					 */
 					Shoebox.LOGGER.debug("Resizing " + photographDocument.getKey() + " from disk square size: " + photographDocument.getSquareSize() + " -> " + newSquareSize);
-					resizedImage = Scalr.resize(ImageIO.read(photographPath.toFile()), newSquareSize);
+					resizedImage = Scalr.resize(ImageIO.read(photographPath.toFile()), method, newSquareSize);
 				} else {
 					/**
 					 * Resize from previous cached image (Performance)
 					 */
 					Shoebox.LOGGER.debug("Resizing " + photographDocument.getKey() + " from cache square size: " + photographCacheDocument.getSquareSize() + " -> " + newSquareSize);
-					resizedImage = Scalr.resize(ImageIO.read(new ByteArrayInputStream(photographCacheDocument.getPhotograph())), newSquareSize);
+					resizedImage = Scalr.resize(ImageIO.read(new ByteArrayInputStream(photographCacheDocument.getPhotograph())), method, newSquareSize);
 				}
 				Shoebox.LOGGER.debug("Actor: " + getSelf().toString() + " Location: " + photographPath.toString() + " Mime: " + mimeType);
 
