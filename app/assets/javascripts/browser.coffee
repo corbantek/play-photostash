@@ -111,7 +111,14 @@ class @Browser
 			dataType: 'json'
 			, success: (singleAlbum) =>		
 				@photostashStories.empty()
+				columnNumber = 4
 				for story in singleAlbum.stories
+					if columnNumber is 4
+						row = $('<div class="row">')
+						@photostashStories.append(row)
+						columnNumber = 1
+					else
+						columnNumber += 1
 					storyCover = $('<div class="col-sm-6 col-md-3">')
 					storyLink = $('<a class="thumbnail">')
 					if story.coverLink?
@@ -123,8 +130,7 @@ class @Browser
 						@displayPhotographs(event.data.album, event.data.story)
 						history.pushState({album: event.data.album, story: event.data.story}, null, '#storyId='+event.data.story.storyId)
 					)
-					@photostashStories.append(storyCover)
-				
+					row.append(storyCover)
 				return
 			, error: (jqXHR, textStatus, errorThrown) ->
 				return
@@ -159,8 +165,16 @@ class @Browser
 			url: story.link,
 			dataType: 'json'
 			, success: (singleStory) =>
+				N_COLUMNS = 3
 				@photostashGallery.empty()
+				columnNumber = N_COLUMNS
 				for photograph in singleStory.photographs
+					if columnNumber is N_COLUMNS
+						row = $('<div class="row">')
+						@photostashGallery.append(row)
+						columnNumber = 1
+					else
+						columnNumber += 1
 					title = "Title: "+photograph.name
 					if photograph.dateTaken?
 						dateTaken = new Date(photograph.dateTaken)
@@ -168,19 +182,18 @@ class @Browser
 					photographLink = $('<a href="'+photograph.link+'/image/resize/1024" rel="'+story.storyId+'" class="fancybox col-sm-4" title="'+title+'">')
 					#photographLink = $('<a href="'+photograph.link+'/image/resize/1024" rel="group" class="fancybox">')
 					photographLink.append($('<img src="'+photograph.link+'/image/resize/360" class="img-responsive img-thumbnail" style="max-width: 360px; max-height: 360px;">'))
-					@photostashGallery.append(photographLink)
-					# Setup Fancybox
-					$(".fancybox").fancybox({
-						type: 'image',
-						afterLoad: ->
-							originalImageLink = @.href.split("/resize")
-							@.title = '<a href="'+originalImageLink[0]+'">Download</a> '+@.title
-					})
+					row.append(photographLink)
+				# Setup Fancybox
+				$(".fancybox").fancybox({
+					type: 'image',
+					afterLoad: ->
+						originalImageLink = @.href.split("/resize")
+						@.title = '<a href="'+originalImageLink[0]+'">Download</a> '+@.title
+				})
 				return
 			, error: (jqXHR, textStatus, errorThrown) ->
 				return
 		})
-
 		return
 
 
