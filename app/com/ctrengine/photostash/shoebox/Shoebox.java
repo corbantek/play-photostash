@@ -1,8 +1,5 @@
 package com.ctrengine.photostash.shoebox;
 
-import java.io.File;
-import java.util.UUID;
-
 import play.Logger;
 import play.Logger.ALogger;
 import play.libs.Akka;
@@ -16,7 +13,7 @@ public enum Shoebox {
 	private ActorRef shoeboxActor;
 	
 	private Shoebox(){
-		shoeboxActor = Akka.system().actorOf(ShoeboxActor.props(), "Shoebox");
+		shoeboxActor = Akka.system().actorOf(ShoeboxActor.props(), "shoebox");
 	}
 	
 	public ActorRef getShoeboxActor(){

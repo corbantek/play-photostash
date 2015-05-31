@@ -134,9 +134,12 @@ public class PhotographActor extends UntypedActor {
 
 				BufferedImage resizedImage = null;
 				Method method = Method.AUTOMATIC;
-//				if(newSquareSize < 400){
-//					method = Method.SPEED;
-//				}
+				/**
+				 * This was too Ugly. Switching back to Automatic -KJ
+				 */
+				/*if(newSquareSize < 400){
+					method = Method.SPEED;
+				}*/
 				if (photographCacheDocument == null) {
 					/**
 					 * Resize from Disk

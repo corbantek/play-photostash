@@ -20,7 +20,29 @@ public class ShoeboxController extends Controller {
 			public Result apply(Object response) {
 				if (response instanceof ResponseMessage) {
 					ResponseMessage responseMessage = (ResponseMessage) response;
-					ObjectNode message = Json.newObject().put("message", responseMessage.getMessage());
+					ObjectNode message = responseMessage.getMessage();
+					switch (responseMessage.getResponseType()) {
+					case INFO:
+						return ok(message);
+					case WARNING:
+						return badRequest(message);
+					case ERROR:
+						return internalServerError(message);
+					}
+					return ok(response.toString());
+				} else {
+					return internalServerError(Json.newObject().put("message", response.toString()));
+				}
+			}
+		});
+	}
+	
+	public static Promise<Result> organizeStatus() {
+		return Promise.wrap(ask(Shoebox.INSTANCE.getShoeboxActor(), new OrganizeShoeboxMessage(ShoeboxConfiguration.INSTANCE.getShoeboxPath()), 2000)).map(new Function<Object, Result>() {
+			public Result apply(Object response) {
+				if (response instanceof ResponseMessage) {
+					ResponseMessage responseMessage = (ResponseMessage) response;
+					ObjectNode message = responseMessage.getMessage();
 					switch (responseMessage.getResponseType()) {
 					case INFO:
 						return ok(message);

@@ -11,6 +11,8 @@ GET		/assets/*file			controllers.Assets.at(path="/public", file)
 
 # Photostash API
 POST		/v1/api/shoebox/organize													com.ctrengine.photostash.controllers.api.ShoeboxController.organize()
+GET			/v1/api/shoebox/organize													com.ctrengine.photostash.controllers.api.ShoeboxController.organizeStatus()
+DELETE		/v1/api/shoebox/organize													com.ctrengine.photostash.controllers.api.ShoeboxController.organizeStop()
 #POST		/v1/api/shoebox/tidy/:albumId/:storyId
 #POST		/v1/api/shoebox/tidy/:albumId
 #POST		/v1/api/shoebox/tidy

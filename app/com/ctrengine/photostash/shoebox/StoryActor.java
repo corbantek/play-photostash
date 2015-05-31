@@ -1,6 +1,8 @@
 package com.ctrengine.photostash.shoebox;
 
 import java.io.File;
+import java.util.HashSet;
+import java.util.Set;
 
 import akka.actor.UntypedActor;
 
@@ -12,15 +14,16 @@ import com.ctrengine.photostash.models.DocumentException;
 import com.ctrengine.photostash.models.PhotographDocument;
 import com.ctrengine.photostash.models.StoryDocument;
 import com.ctrengine.photostash.shoebox.ShoeboxMessages.OrganizeStoryMessage;
-import com.ctrengine.photostash.shoebox.ShoeboxMessages.PhotographRequestMessage;
-import com.ctrengine.photostash.shoebox.ShoeboxMessages.PhotographResizeRequestMessage;
 import com.ctrengine.photostash.shoebox.ShoeboxMessages.PhotographResponseMessage;
 
 public class StoryActor extends UntypedActor {
 	private final PhotostashDatabase database;
+	
+	private Set<File> photographsOrganizing;
 
 	private StoryActor() throws ShoeboxException {
 		database = PhotostashDatabase.INSTANCE;
+		photographsOrganizing = new HashSet<File>();
 	}
 
 	@Override
@@ -103,10 +106,6 @@ public class StoryActor extends UntypedActor {
 						if (coverPhotographKey == null) {
 							coverPhotographKey = photographDocument.getKey();
 						}
-						/**
-						 * Create a default resize image of 1024 to speed up initial content delivery
-						 */
-						//Shoebox.INSTANCE.getShoeboxActor().tell(new PhotographResizeRequestMessage(photographDocument, 1024), getSelf());
 					}
 				}
 			}

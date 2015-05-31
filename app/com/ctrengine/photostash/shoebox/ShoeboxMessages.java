@@ -2,10 +2,18 @@ package com.ctrengine.photostash.shoebox;
 
 import java.io.File;
 
+import com.ctrengine.photostash.models.AbstractFileDocument;
 import com.ctrengine.photostash.models.AlbumDocument;
 import com.ctrengine.photostash.models.PhotographDocument;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 
 public class ShoeboxMessages {
+	public static class OrganizeStatusRequestMessage {
+	}
+
+	public static class OrganizeStopMessage {
+	}
+
 	public static class OrganizeShoeboxMessage {
 		private final String shoeboxPath;
 
@@ -15,6 +23,29 @@ public class ShoeboxMessages {
 
 		public String getShoeboxPath() {
 			return shoeboxPath;
+		}
+	}
+
+	public static class OrganizeCompleteMessage {
+		private final AbstractFileDocument abstractFileDocument;
+		private final File file;
+
+		public OrganizeCompleteMessage(AbstractFileDocument abstractFileDocument, File file) {
+			this.abstractFileDocument = abstractFileDocument;
+			this.file = file;
+		}
+
+		public OrganizeCompleteMessage(File file) {
+			this.abstractFileDocument = null;
+			this.file = file;
+		}
+
+		public AbstractFileDocument getAbstractFileDocument() {
+			return abstractFileDocument;
+		}
+
+		public File getFile() {
+			return file;
 		}
 	}
 
@@ -102,9 +133,9 @@ public class ShoeboxMessages {
 
 	public static class ResponseMessage {
 		private final ResponseType responseType;
-		private final String message;
+		private final ObjectNode message;
 
-		public ResponseMessage(ResponseType responseType, String message) {
+		public ResponseMessage(ResponseType responseType, ObjectNode message) {
 			this.responseType = responseType;
 			this.message = message;
 		}
@@ -113,7 +144,7 @@ public class ShoeboxMessages {
 			return responseType;
 		}
 
-		public String getMessage() {
+		public ObjectNode getMessage() {
 			return message;
 		}
 	}
