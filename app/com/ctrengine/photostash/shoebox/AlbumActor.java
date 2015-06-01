@@ -39,9 +39,15 @@ public class AlbumActor extends UntypedActor {
 		}
 	}
 
+	/**
+	 * Basic Needs
+	 */
 	private final PhotostashDatabase database;
 	private ActorRef storyRouter;
 
+	/**
+	 * Organizing Tracking
+	 */
 	private Map<AlbumDocument, Set<File>> storiesOrganizing;
 	private Map<AlbumDocument, OrganizeAlbumRequester> organizingRequestMap;
 
@@ -127,6 +133,10 @@ public class AlbumActor extends UntypedActor {
 					storyFiles.add(storyDirectory);
 				}
 			}
+			
+			/**
+			 * Need to look for albums that have been removed
+			 */
 		} catch (ShoeboxException e) {
 			final String message = "Unable to organize album: '" + albumDirectory.getAbsolutePath() + "': " + e.getMessage();
 			Shoebox.LOGGER.error(message);
