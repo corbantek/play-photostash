@@ -9,9 +9,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 import javax.imageio.ImageIO;
 
@@ -45,7 +43,10 @@ public class PhotographActor extends UntypedActor {
 
 	@Override
 	public void onReceive(Object message) throws Exception {
-		if (message instanceof OrganizeMessage) {
+		if (message instanceof OrganizeCompleteMessage) {
+			OrganizeCompleteMessage organizeCompleteMessage = (OrganizeCompleteMessage)message;
+			Shoebox.LOGGER.warn("PhotographActor received OrganizeCompleteMessage "+organizeCompleteMessage.getAbstractFileDocument().getKey()+":"+organizeCompleteMessage.getFile().getName()+" from " + getSender());
+		} else if (message instanceof OrganizeMessage) {
 			organize((OrganizeMessage) message);
 		} else if (message instanceof PhotographRequestMessage) {
 			readPhotographFromDisk((PhotographRequestMessage) message);
@@ -67,7 +68,7 @@ public class PhotographActor extends UntypedActor {
 			}
 			getSender().tell(new OrganizeCompleteMessage(storyDocument, photographFile), getSelf());
 		} else {
-			Shoebox.LOGGER.warn("Organize Parent Document is not a StoryDocument: " + organizeMessage.getAbstractFileDocument().getName());
+			Shoebox.LOGGER.warn("Organize Parent Document is not a StoryDocument: " + organizeMessage.getAbstractFileDocument().getName() + " " + getSender());
 		}
 	}
 

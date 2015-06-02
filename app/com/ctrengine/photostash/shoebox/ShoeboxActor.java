@@ -13,6 +13,7 @@ import akka.routing.Broadcast;
 import akka.routing.RoundRobinPool;
 
 import com.ctrengine.photostash.conf.ShoeboxConfiguration;
+import com.ctrengine.photostash.shoebox.ShoeboxMessages.OrganizeCompleteMessage;
 import com.ctrengine.photostash.shoebox.ShoeboxMessages.OrganizeMessage;
 import com.ctrengine.photostash.shoebox.ShoeboxMessages.OrganizeShoeboxMessage;
 import com.ctrengine.photostash.shoebox.ShoeboxMessages.OrganizeStopMessage;
@@ -47,7 +48,9 @@ public class ShoeboxActor extends UntypedActor {
 
 	@Override
 	public void onReceive(Object message) throws Exception {
-		if (message instanceof PhotographRequestMessage || message instanceof PhotographResizeRequestMessage || message instanceof OrganizeMessage) {
+		if (message instanceof OrganizeCompleteMessage) {
+			organizeComplete((OrganizeCompleteMessage) message);
+		} else if (message instanceof PhotographRequestMessage || message instanceof PhotographResizeRequestMessage || message instanceof OrganizeMessage) {
 			photographRouter.tell(message, getSender());
 		} else if (message instanceof OrganizeShoeboxMessage) {
 			organize((OrganizeShoeboxMessage) message);
@@ -68,11 +71,12 @@ public class ShoeboxActor extends UntypedActor {
 			albumsOrganizing.clear();
 			File shoeboxDirectory = new File(organizeMessage.getShoeboxPath());
 			if (shoeboxDirectory.exists() && shoeboxDirectory.isDirectory()) {
+				Shoebox.LOGGER.info("Shoebox organization started.");
 				/**
 				 * Send messages to the Album Router to perform organizations
 				 * for each album found
 				 */
-				for (File albumDirectory : shoeboxDirectory.listFiles()) {			
+				for (File albumDirectory : shoeboxDirectory.listFiles()) {
 					if (albumDirectory.isDirectory()) {
 						Shoebox.LOGGER.info("Found Album: " + albumDirectory.getAbsolutePath());
 						albumRouter.tell(new OrganizeMessage(albumDirectory), getSelf());
@@ -96,4 +100,12 @@ public class ShoeboxActor extends UntypedActor {
 		}
 	}
 
+	private void organizeComplete(OrganizeCompleteMessage organizeCompleteMessage) {
+		if (!albumsOrganizing.remove(organizeCompleteMessage.getFile())) {
+			Shoebox.LOGGER.warn("Completed organize album not found: " + organizeCompleteMessage.getFile().getName());
+		}
+		if (albumsOrganizing.isEmpty()) {
+			Shoebox.LOGGER.info("Completed shoebox organization.");
+		}
+	}
 }

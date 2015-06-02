@@ -66,10 +66,10 @@ public class StoryActor extends UntypedActor {
 
 	@Override
 	public void onReceive(Object message) throws Exception {
-		if (message instanceof OrganizeMessage) {
-			organize((OrganizeMessage) message);
-		} else if (message instanceof OrganizeCompleteMessage) {
+		if (message instanceof OrganizeCompleteMessage) {
 			organizeComplete((OrganizeCompleteMessage) message);
+		} else if (message instanceof OrganizeMessage) {
+			organize((OrganizeMessage) message);
 		} else if (message instanceof PhotographResponseMessage) {
 			/*
 			 * Do nothing
@@ -90,6 +90,7 @@ public class StoryActor extends UntypedActor {
 					Shoebox.LOGGER.warn("Completed organize photograph not found: " + organizeCompleteMessage.getFile().getName());
 				}
 				if (photographs.isEmpty()) {
+					Shoebox.LOGGER.info("Organize Story Complete for " + organizeCompleteMessage.getAbstractFileDocument().getKey());
 					/**
 					 * No more photographs in this story are organizing, tell
 					 * the original sender and clean up memory
@@ -97,7 +98,7 @@ public class StoryActor extends UntypedActor {
 					photographsOrganizing.remove(storyDocument);
 					OrganizeStoryRequester organizeStoryRequester = organizingRequestMap.remove(storyDocument);
 					if (organizeStoryRequester != null) {
-						getSender().tell(new ShoeboxMessages.OrganizeCompleteMessage(organizeStoryRequester.getAlbumDocument(), organizeStoryRequester.getStoryFile()), organizeStoryRequester.getRequester());
+						organizeStoryRequester.getRequester().tell(new ShoeboxMessages.OrganizeCompleteMessage(organizeStoryRequester.getAlbumDocument(), organizeStoryRequester.getStoryFile()), getSelf());
 					} else {
 						Shoebox.LOGGER.warn("Organize complete message was not an instance of StoryDocument: " + storyDocument.getName());
 					}
@@ -199,14 +200,23 @@ public class StoryActor extends UntypedActor {
 						/*
 						 * TODO Need to move to Photograph Actor
 						 */
-						///PhotographDocument photographDocument = verifyPhotograph(storyDocument, photographFile);
+						// /PhotographDocument photographDocument =
+						// verifyPhotograph(storyDocument, photographFile);
 					}
 				}
 			} catch (ShoeboxException e) {
 				final String message = "Unable to organize story: '" + storyDirectory.getAbsolutePath() + "': " + e.getMessage();
 				Shoebox.LOGGER.error(message);
 			}
-		}else{
+			if (photographFiles.isEmpty()) {
+				/**
+				 * Something wrong happened and there are no photograph files to
+				 * organize, so tell the sender we are done
+				 */
+				Shoebox.LOGGER.warn("Unable to organize story: "+storyDirectory.getName()+".  No photographs.");
+				getSender().tell(new ShoeboxMessages.OrganizeCompleteMessage(albumDocument, storyDirectory), getSender());
+			}
+		} else {
 			Shoebox.LOGGER.warn("Organize Parent Document is not a AlbumDocument: " + organizeMessage.getAbstractFileDocument().getName());
 		}
 	}

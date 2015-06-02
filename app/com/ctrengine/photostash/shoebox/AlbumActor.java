@@ -21,7 +21,7 @@ public class AlbumActor extends UntypedActor {
 	private static class OrganizeAlbumRequester {
 		private final ActorRef requester;
 		private final File albumFile;
-		
+
 		public OrganizeAlbumRequester(ActorRef requester, File albumFile) {
 			super();
 			this.requester = requester;
@@ -58,10 +58,10 @@ public class AlbumActor extends UntypedActor {
 
 	@Override
 	public void onReceive(Object message) throws Exception {
-		if (message instanceof OrganizeMessage) {
-			organize((OrganizeMessage) message);
-		} else if (message instanceof OrganizeCompleteMessage) {
+		if (message instanceof OrganizeCompleteMessage) {
 			organizeComplete((OrganizeCompleteMessage) message);
+		} else if (message instanceof OrganizeMessage) {
+			organize((OrganizeMessage) message);
 		} else {
 			unhandled(message);
 		}
@@ -76,15 +76,16 @@ public class AlbumActor extends UntypedActor {
 				Shoebox.LOGGER.warn("Completed organize story not found: " + organizeCompleteMessage.getFile().getName());
 			}
 			if (stories.isEmpty()) {
+				Shoebox.LOGGER.info("Organize Album Complete for " + organizeCompleteMessage.getAbstractFileDocument().getKey());
 				/**
 				 * No more stories in this album are organizing, tell the
 				 * original sender and clean up memory
 				 */
 				storiesOrganizing.remove(organizeCompleteMessage.getAbstractFileDocument());
 				OrganizeAlbumRequester organizeAlbumRequester = organizingRequestMap.remove(organizeCompleteMessage.getAbstractFileDocument());
-				if(organizeAlbumRequester != null){
-					getSender().tell(new ShoeboxMessages.OrganizeCompleteMessage(organizeAlbumRequester.getAlbumFile()), organizeAlbumRequester.getRequester());
-				}else{
+				if (organizeAlbumRequester != null) {
+					organizeAlbumRequester.getRequester().tell(new ShoeboxMessages.OrganizeCompleteMessage(organizeAlbumRequester.getAlbumFile()), getSelf());
+				} else {
 					Shoebox.LOGGER.warn("Organize requester not found for: " + organizeCompleteMessage.getAbstractFileDocument().getName());
 				}
 			}
@@ -131,7 +132,7 @@ public class AlbumActor extends UntypedActor {
 					storyFiles.add(storyDirectory);
 				}
 			}
-			
+
 			/**
 			 * Need to look for albums that have been removed
 			 */
@@ -144,6 +145,7 @@ public class AlbumActor extends UntypedActor {
 			 * Something wrong happened and there are no story files to
 			 * organize, so tell the sender we are done
 			 */
+			Shoebox.LOGGER.warn("Unable to organize album: "+albumDirectory.getName()+".  No story directories.");
 			getSender().tell(new ShoeboxMessages.OrganizeCompleteMessage(albumDirectory), getSender());
 		}
 	}
