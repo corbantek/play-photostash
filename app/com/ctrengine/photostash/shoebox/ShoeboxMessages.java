@@ -26,16 +26,16 @@ public class ShoeboxMessages {
 		}
 	}
 
-	public static class OrganizeCompleteMessage {
+	public static class OrganizeMessage {
 		private final AbstractFileDocument abstractFileDocument;
 		private final File file;
 
-		public OrganizeCompleteMessage(AbstractFileDocument abstractFileDocument, File file) {
+		public OrganizeMessage(AbstractFileDocument abstractFileDocument, File file) {
 			this.abstractFileDocument = abstractFileDocument;
 			this.file = file;
 		}
 
-		public OrganizeCompleteMessage(File file) {
+		public OrganizeMessage(File file) {
 			this.abstractFileDocument = null;
 			this.file = file;
 		}
@@ -49,33 +49,14 @@ public class ShoeboxMessages {
 		}
 	}
 
-	public static class OrganizeAlbumMessage {
-		private final File albumDirectory;
+	public static class OrganizeCompleteMessage extends OrganizeMessage {
+		public OrganizeCompleteMessage(AbstractFileDocument abstractFileDocument, File file) {
+			super(abstractFileDocument, file);
 
-		public OrganizeAlbumMessage(File albumDirectory) {
-			this.albumDirectory = albumDirectory;
 		}
 
-		public File getAlbumDirectory() {
-			return albumDirectory;
-		}
-	}
-
-	public static class OrganizeStoryMessage {
-		private final AlbumDocument albumDocument;
-		private final File storyDirectory;
-
-		public OrganizeStoryMessage(AlbumDocument albumDocument, File storyDirectory) {
-			this.albumDocument = albumDocument;
-			this.storyDirectory = storyDirectory;
-		}
-
-		public AlbumDocument getAlbumDocument() {
-			return albumDocument;
-		}
-
-		public File getStoryDirectory() {
-			return storyDirectory;
+		public OrganizeCompleteMessage(File file) {
+			super(file);
 		}
 	}
 

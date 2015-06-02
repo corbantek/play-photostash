@@ -13,7 +13,7 @@ import akka.routing.Broadcast;
 import akka.routing.RoundRobinPool;
 
 import com.ctrengine.photostash.conf.ShoeboxConfiguration;
-import com.ctrengine.photostash.shoebox.ShoeboxMessages.OrganizeAlbumMessage;
+import com.ctrengine.photostash.shoebox.ShoeboxMessages.OrganizeMessage;
 import com.ctrengine.photostash.shoebox.ShoeboxMessages.OrganizeShoeboxMessage;
 import com.ctrengine.photostash.shoebox.ShoeboxMessages.OrganizeStopMessage;
 import com.ctrengine.photostash.shoebox.ShoeboxMessages.PhotographRequestMessage;
@@ -47,7 +47,7 @@ public class ShoeboxActor extends UntypedActor {
 
 	@Override
 	public void onReceive(Object message) throws Exception {
-		if (message instanceof PhotographRequestMessage || message instanceof PhotographResizeRequestMessage) {
+		if (message instanceof PhotographRequestMessage || message instanceof PhotographResizeRequestMessage || message instanceof OrganizeMessage) {
 			photographRouter.tell(message, getSender());
 		} else if (message instanceof OrganizeShoeboxMessage) {
 			organize((OrganizeShoeboxMessage) message);
@@ -75,7 +75,7 @@ public class ShoeboxActor extends UntypedActor {
 				for (File albumDirectory : shoeboxDirectory.listFiles()) {			
 					if (albumDirectory.isDirectory()) {
 						Shoebox.LOGGER.info("Found Album: " + albumDirectory.getAbsolutePath());
-						albumRouter.tell(new OrganizeAlbumMessage(albumDirectory), getSelf());
+						albumRouter.tell(new OrganizeMessage(albumDirectory), getSelf());
 						albumsOrganizing.add(albumDirectory);
 					}
 				}

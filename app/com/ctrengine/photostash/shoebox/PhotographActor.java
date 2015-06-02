@@ -3,12 +3,15 @@ package com.ctrengine.photostash.shoebox;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import javax.imageio.ImageIO;
 
@@ -17,12 +20,17 @@ import org.imgscalr.Scalr.Method;
 
 import akka.actor.UntypedActor;
 
+import com.arangodb.ErrorNums;
 import com.ctrengine.photostash.database.DatabaseException;
 import com.ctrengine.photostash.database.DatabaseFilter;
 import com.ctrengine.photostash.database.DatabaseFilter.DatabaseFilterType;
 import com.ctrengine.photostash.database.PhotostashDatabase;
+import com.ctrengine.photostash.models.DocumentException;
 import com.ctrengine.photostash.models.PhotographCacheDocument;
 import com.ctrengine.photostash.models.PhotographDocument;
+import com.ctrengine.photostash.models.StoryDocument;
+import com.ctrengine.photostash.shoebox.ShoeboxMessages.OrganizeCompleteMessage;
+import com.ctrengine.photostash.shoebox.ShoeboxMessages.OrganizeMessage;
 import com.ctrengine.photostash.shoebox.ShoeboxMessages.PhotographRequestMessage;
 import com.ctrengine.photostash.shoebox.ShoeboxMessages.PhotographResizeRequestMessage;
 import com.ctrengine.photostash.shoebox.ShoeboxMessages.PhotographResponseMessage;
@@ -37,13 +45,79 @@ public class PhotographActor extends UntypedActor {
 
 	@Override
 	public void onReceive(Object message) throws Exception {
-		if (message instanceof PhotographRequestMessage) {
+		if (message instanceof OrganizeMessage) {
+			organize((OrganizeMessage) message);
+		} else if (message instanceof PhotographRequestMessage) {
 			readPhotographFromDisk((PhotographRequestMessage) message);
 		} else if (message instanceof PhotographResizeRequestMessage) {
 			readPhotographFromDatabase((PhotographResizeRequestMessage) message);
 		} else {
 			unhandled(message);
 		}
+	}
+
+	private void organize(OrganizeMessage organizeMessage) {
+		if (organizeMessage.getAbstractFileDocument() instanceof StoryDocument) {
+			StoryDocument storyDocument = (StoryDocument) organizeMessage.getAbstractFileDocument();
+			File photographFile = organizeMessage.getFile();
+
+			PhotographDocument photographDocument = getPhotographDocument(storyDocument, photographFile);
+			if (photographDocument == null) {
+				Shoebox.LOGGER.warn("Organize Photograph Failed for: " + organizeMessage.getFile());
+			}
+			getSender().tell(new OrganizeCompleteMessage(storyDocument, photographFile), getSelf());
+		} else {
+			Shoebox.LOGGER.warn("Organize Parent Document is not a StoryDocument: " + organizeMessage.getAbstractFileDocument().getName());
+		}
+	}
+
+	private PhotographDocument getPhotographDocument(final StoryDocument storyDocument, final File photographFile) {
+		/**
+		 * Verify Photograph has a database entry
+		 */
+		PhotographDocument photographDocument = null;
+		try {
+			photographDocument = database.findPhotograph(photographFile.getAbsolutePath());
+		} catch (DatabaseException e) {
+			final String message = "Unable to find storyDocument '" + photographFile.getAbsolutePath() + "': " + e.getMessage();
+			Shoebox.LOGGER.warn(message);
+		}
+		try {
+			if (photographDocument == null) {
+				photographDocument = new PhotographDocument(photographFile);
+				try {
+					createAndRelatePhotographDocument(storyDocument, photographDocument);
+				} catch (DatabaseException e) {
+					if (e.getErrorNumber() == ErrorNums.ERROR_ARANGO_UNIQUE_CONSTRAINT_VIOLATED) {
+						Shoebox.LOGGER.warn("Duplicate Story Key Detected: Adding StoryKey to PhotographyKey");
+						photographDocument.setKey(storyDocument.getKey() + "-" + photographDocument.getKey());
+						try {
+							createAndRelatePhotographDocument(storyDocument, photographDocument);
+						} catch (DatabaseException e1) {
+							final String message = "Unable to create/link photographDocument '" + photographFile.getAbsolutePath() + "': " + e.getMessage();
+							Shoebox.LOGGER.error(message);
+						}
+					} else {
+						final String message = "Unable to create/link photographDocument '" + photographFile.getAbsolutePath() + "': " + e.getMessage();
+						Shoebox.LOGGER.error(message);
+					}
+				}
+			}
+		} catch (DocumentException e) {
+			final String message = "Unable to create photographDocument '" + photographFile.getAbsolutePath() + "': " + e.getMessage();
+			Shoebox.LOGGER.error(message);
+		}
+		return photographDocument;
+	}
+
+	private PhotographDocument createAndRelatePhotographDocument(StoryDocument storyDocument, PhotographDocument photographDocument) throws DatabaseException {
+		/**
+		 * Create new Photograph Record
+		 */
+		photographDocument = database.createDocument(photographDocument);
+		Shoebox.LOGGER.debug("StoryDocument: " + storyDocument + " PhotographDocument:" + photographDocument);
+		database.relateDocumentToDocument(storyDocument, photographDocument);
+		return photographDocument;
 	}
 
 	private void readPhotographFromDisk(PhotographRequestMessage photographRequestMessage) {
@@ -111,7 +185,7 @@ public class PhotographActor extends UntypedActor {
 					/**
 					 * Update Photograph Record with new stash size
 					 */
-					updatePhotographStashSize(photographDocument, photographCacheDocument);	
+					updatePhotographStashSize(photographDocument, photographCacheDocument);
 				}
 			} else {
 				/**
@@ -137,9 +211,9 @@ public class PhotographActor extends UntypedActor {
 				/**
 				 * This was too Ugly. Switching back to Automatic -KJ
 				 */
-				/*if(newSquareSize < 400){
-					method = Method.SPEED;
-				}*/
+				/*
+				 * if(newSquareSize < 400){ method = Method.SPEED; }
+				 */
 				if (photographCacheDocument == null) {
 					/**
 					 * Resize from Disk
@@ -160,7 +234,7 @@ public class PhotographActor extends UntypedActor {
 				baos.flush();
 				byte[] photograph = baos.toByteArray();
 				baos.close();
-				
+
 				return new PhotographCacheDocument(photographDocument, photograph, newSquareSize);
 			} else {
 				Shoebox.LOGGER.error("Could not resize photograph: " + photographDocument.getName());
@@ -175,17 +249,17 @@ public class PhotographActor extends UntypedActor {
 		}
 	}
 
-	private void writePhotographCacheToDatabase(PhotographDocument photographDocument, PhotographCacheDocument photographCacheDocument) {
+	private void updatePhotographStashSize(PhotographDocument photographDocument, PhotographCacheDocument photographCacheDocument) {
 		try {
-			photographDocument.setStashSize(photographDocument.getStashSize()+photographCacheDocument.getSize());
+			photographDocument.setStashSize(photographDocument.getStashSize() + photographCacheDocument.getSize());
 			database.updateDocument(photographDocument);
 		} catch (DatabaseException e) {
 			final String message = "Unable to update PhotographDocument stash size for '" + photographDocument.getKey() + "': " + e.getMessage();
 			Shoebox.LOGGER.error(message);
 		}
 	}
-	
-	private void updatePhotographStashSize(PhotographDocument photographDocument, PhotographCacheDocument photographCacheDocument){
+
+	private void writePhotographCacheToDatabase(PhotographDocument photographDocument, PhotographCacheDocument photographCacheDocument) {
 		try {
 			database.createDocument(photographCacheDocument);
 			database.relateDocumentToDocument(photographDocument, photographCacheDocument);

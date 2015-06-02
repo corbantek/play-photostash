@@ -1,7 +1,6 @@
 package com.ctrengine.photostash.shoebox;
 
 import java.io.File;
-import java.util.AbstractMap;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -15,9 +14,8 @@ import akka.routing.RoundRobinPool;
 import com.ctrengine.photostash.database.DatabaseException;
 import com.ctrengine.photostash.database.PhotostashDatabase;
 import com.ctrengine.photostash.models.AlbumDocument;
-import com.ctrengine.photostash.shoebox.ShoeboxMessages.OrganizeAlbumMessage;
 import com.ctrengine.photostash.shoebox.ShoeboxMessages.OrganizeCompleteMessage;
-import com.ctrengine.photostash.shoebox.ShoeboxMessages.OrganizeStoryMessage;
+import com.ctrengine.photostash.shoebox.ShoeboxMessages.OrganizeMessage;
 
 public class AlbumActor extends UntypedActor {
 	private static class OrganizeAlbumRequester {
@@ -60,8 +58,8 @@ public class AlbumActor extends UntypedActor {
 
 	@Override
 	public void onReceive(Object message) throws Exception {
-		if (message instanceof OrganizeAlbumMessage) {
-			organize((OrganizeAlbumMessage) message);
+		if (message instanceof OrganizeMessage) {
+			organize((OrganizeMessage) message);
 		} else if (message instanceof OrganizeCompleteMessage) {
 			organizeComplete((OrganizeCompleteMessage) message);
 		} else {
@@ -114,8 +112,8 @@ public class AlbumActor extends UntypedActor {
 		}
 	}
 
-	private void organize(OrganizeAlbumMessage organizeMessage) {
-		File albumDirectory = organizeMessage.getAlbumDirectory();
+	private void organize(OrganizeMessage organizeMessage) {
+		File albumDirectory = organizeMessage.getFile();
 		Set<File> storyFiles = new HashSet<File>();
 		try {
 			AlbumDocument albumDocument = getAlbumDocument(albumDirectory);
@@ -126,10 +124,10 @@ public class AlbumActor extends UntypedActor {
 			organizingRequestMap.put(albumDocument, new OrganizeAlbumRequester(getSender(), albumDirectory));
 			storiesOrganizing.put(albumDocument, storyFiles);
 
-			for (File storyDirectory : organizeMessage.getAlbumDirectory().listFiles()) {
+			for (File storyDirectory : organizeMessage.getFile().listFiles()) {
 				if (storyDirectory.isDirectory()) {
 					Shoebox.LOGGER.info("Found Story: " + storyDirectory.getAbsolutePath());
-					storyRouter.tell(new OrganizeStoryMessage(albumDocument, storyDirectory), getSelf());
+					storyRouter.tell(new OrganizeMessage(albumDocument, storyDirectory), getSelf());
 					storyFiles.add(storyDirectory);
 				}
 			}
