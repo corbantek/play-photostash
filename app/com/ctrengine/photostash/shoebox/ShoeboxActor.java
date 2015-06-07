@@ -16,6 +16,7 @@ import com.ctrengine.photostash.conf.ShoeboxConfiguration;
 import com.ctrengine.photostash.shoebox.ShoeboxMessages.OrganizeCompleteMessage;
 import com.ctrengine.photostash.shoebox.ShoeboxMessages.OrganizeMessage;
 import com.ctrengine.photostash.shoebox.ShoeboxMessages.OrganizeShoeboxMessage;
+import com.ctrengine.photostash.shoebox.ShoeboxMessages.OrganizeStatusRequestMessage;
 import com.ctrengine.photostash.shoebox.ShoeboxMessages.OrganizeStopMessage;
 import com.ctrengine.photostash.shoebox.ShoeboxMessages.PhotographRequestMessage;
 import com.ctrengine.photostash.shoebox.ShoeboxMessages.PhotographResizeRequestMessage;
@@ -48,7 +49,9 @@ public class ShoeboxActor extends UntypedActor {
 
 	@Override
 	public void onReceive(Object message) throws Exception {
-		if (message instanceof OrganizeCompleteMessage) {
+		if (message instanceof OrganizeStatusRequestMessage) {
+			organizeStatus();
+		} else if (message instanceof OrganizeCompleteMessage) {
 			organizeComplete((OrganizeCompleteMessage) message);
 		} else if (message instanceof PhotographRequestMessage || message instanceof PhotographResizeRequestMessage || message instanceof OrganizeMessage) {
 			photographRouter.tell(message, getSender());
@@ -62,9 +65,6 @@ public class ShoeboxActor extends UntypedActor {
 	}
 
 	private void organize(OrganizeShoeboxMessage organizeMessage) {
-		/**
-		 * TODO First detect if another organize is running
-		 */
 		if (albumsOrganizing.size() > 0) {
 			getSender().tell(new ResponseMessage(ResponseType.WARNING, Json.newObject().put("message", "Shoebox organize already running.")), getSelf());
 		} else {
@@ -106,6 +106,18 @@ public class ShoeboxActor extends UntypedActor {
 		}
 		if (albumsOrganizing.isEmpty()) {
 			Shoebox.LOGGER.info("Completed shoebox organization.");
+		}
+	}
+
+	private void organizeStatus() {
+		ObjectNode message = Json.newObject();
+		if (albumsOrganizing.isEmpty()) {
+			message.put("message", "Organize complete or not running.");
+			getSender().tell(new ResponseMessage(ResponseType.INFO, message), getSelf());
+		} else {
+			message.put("message", "Organizing...");
+			message.put("organizing", Json.newObject().put("albums", albumsOrganizing.size()));
+			getSender().tell(new ResponseMessage(ResponseType.INFO, message), getSelf());
 		}
 	}
 }
