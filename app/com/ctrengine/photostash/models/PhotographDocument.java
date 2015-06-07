@@ -66,7 +66,11 @@ public class PhotographDocument extends AbstractFileDocument implements RelateDo
 			 * Get Square Size
 			 */
 			BufferedImage bufferedImage = ImageIO.read(file);
-			squareSize = Math.max(bufferedImage.getWidth(), bufferedImage.getHeight());
+			if (bufferedImage != null) {
+				squareSize = Math.max(bufferedImage.getWidth(), bufferedImage.getHeight());
+			} else {
+				throw new DocumentException(file.getName() + " is not an actual photograph.");
+			}
 		} catch (IOException e) {
 			throw new DocumentException(e);
 		}
@@ -125,14 +129,16 @@ public class PhotographDocument extends AbstractFileDocument implements RelateDo
 		if (dateTaken == null) {
 			try {
 				Metadata metadata = ImageMetadataReader.readMetadata(file);
-				ExifSubIFDDirectory exifSubIFDDirectory = metadata.getFirstDirectoryOfType(ExifSubIFDDirectory.class);
-				if (exifSubIFDDirectory != null) {
-					Date date = exifSubIFDDirectory.getDate(ExifSubIFDDirectory.TAG_DATETIME_ORIGINAL);					
-					if (date != null) {
-						/**
-						 * TODO Fix Time Zone Issues
-						 */
-						dateTaken = date.getTime();
+				if (metadata != null) {
+					ExifSubIFDDirectory exifSubIFDDirectory = metadata.getFirstDirectoryOfType(ExifSubIFDDirectory.class);
+					if (exifSubIFDDirectory != null) {
+						Date date = exifSubIFDDirectory.getDate(ExifSubIFDDirectory.TAG_DATETIME_ORIGINAL);
+						if (date != null) {
+							/**
+							 * TODO Fix Time Zone Issues
+							 */
+							dateTaken = date.getTime();
+						}
 					}
 				}
 			} catch (ImageProcessingException | IOException e) {
@@ -187,7 +193,7 @@ public class PhotographDocument extends AbstractFileDocument implements RelateDo
 	public String getCollection() {
 		return COLLECTION;
 	}
-	
+
 	@Override
 	public int compareTo(Document o) {
 		if (o instanceof PhotographDocument) {
