@@ -65,7 +65,7 @@ public class PhotographController extends Controller {
 					}
 				});
 			} else {
-				return Promise.wrap(ask(Shoebox.INSTANCE.getShoeboxActor(), new PhotographRequestMessage(photographDocument), 10000)).map(new Function<Object, Result>() {
+				return Promise.wrap(ask(Shoebox.INSTANCE.getPhotographRouter(), new PhotographRequestMessage(photographDocument), 10000)).map(new Function<Object, Result>() {
 					public Result apply(Object response) {
 						if (response instanceof PhotographResponseMessage) {
 							PhotographResponseMessage photographResponseMessage = (PhotographResponseMessage) response;
@@ -101,7 +101,7 @@ public class PhotographController extends Controller {
 				if (squareSize == null) {
 					return getPhotographImage(photographId);
 				} else {
-					return Promise.wrap(ask(Shoebox.INSTANCE.getShoeboxActor(), new PhotographResizeRequestMessage(photographDocument, squareSize), 10000)).map(new Function<Object, Result>() {
+					return Promise.wrap(ask(Shoebox.INSTANCE.getPhotographRouter(), new PhotographResizeRequestMessage(photographDocument, squareSize), 10000)).map(new Function<Object, Result>() {
 						public Result apply(Object response) {
 							if (response instanceof PhotographResponseMessage) {
 								PhotographResponseMessage photographResponseMessage = (PhotographResponseMessage) response;

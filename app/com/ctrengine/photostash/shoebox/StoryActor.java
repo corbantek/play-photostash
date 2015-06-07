@@ -195,7 +195,7 @@ public class StoryActor extends UntypedActor {
 				for (File photographFile : storyDirectory.listFiles()) {
 					if (photographFile.isFile()) {
 						Shoebox.LOGGER.debug("Found PhotographDocument: " + photographFile.getAbsolutePath());
-						Shoebox.INSTANCE.getShoeboxActor().tell(new OrganizeMessage(storyDocument, photographFile), getSelf());
+						Shoebox.INSTANCE.getPhotographRouter().tell(new OrganizeMessage(storyDocument, photographFile), getSelf());
 						photographFiles.add(photographFile);
 						/*
 						 * TODO Need to move to Photograph Actor

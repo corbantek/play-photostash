@@ -36,13 +36,11 @@ public class ShoeboxActor extends UntypedActor {
 		});
 	}
 
-	private ActorRef photographRouter;
 	private ActorRef albumRouter;
 
 	private Set<File> albumsOrganizing;
 
 	private ShoeboxActor() {
-		photographRouter = getContext().actorOf(new RoundRobinPool(20).props(Props.create(PhotographActor.class)), "photograph-router");
 		albumRouter = getContext().actorOf(new RoundRobinPool(2).props(Props.create(AlbumActor.class)), "album-router");
 		albumsOrganizing = new HashSet<File>();
 	}
@@ -54,7 +52,9 @@ public class ShoeboxActor extends UntypedActor {
 		} else if (message instanceof OrganizeCompleteMessage) {
 			organizeComplete((OrganizeCompleteMessage) message);
 		} else if (message instanceof PhotographRequestMessage || message instanceof PhotographResizeRequestMessage || message instanceof OrganizeMessage) {
-			photographRouter.tell(message, getSender());
+			/**
+			 * Do Nothing
+			 */
 		} else if (message instanceof OrganizeShoeboxMessage) {
 			organize((OrganizeShoeboxMessage) message);
 		} else if (message instanceof OrganizeStopMessage) {
