@@ -49,9 +49,10 @@ public class StoryDocument extends AbstractFileDocument implements RelateDocumen
 		String fileName = file.getName().trim();
 		Matcher findDateAndDateRange = DATE_AND_DATE_RANGE_PATTERN.matcher(fileName);
 		if (findDateAndDateRange.find()) {
+			String newFileName = fileName;
 			try {
 				storyDate = DATE_PARSER.parse(findDateAndDateRange.group()).getTime();
-				fileName = fileName.substring(findDateAndDateRange.end());
+				newFileName = fileName.substring(findDateAndDateRange.end());
 			} catch (ParseException e) {
 				/**
 				 * TODO Logging Message
@@ -60,13 +61,14 @@ public class StoryDocument extends AbstractFileDocument implements RelateDocumen
 			if (findDateAndDateRange.find()) {
 				try {
 					storyEndDate = DATE_PARSER.parse(findDateAndDateRange.group()).getTime();
-					fileName = fileName.substring(findDateAndDateRange.end());
+					newFileName = fileName.substring(findDateAndDateRange.end());
 				} catch (ParseException e) {
 					/**
 					 * TODO Logging Message
 					 */
 				}
 			}
+			fileName = newFileName;
 		}
 		String key = "";
 		if (storyDate != null) {
