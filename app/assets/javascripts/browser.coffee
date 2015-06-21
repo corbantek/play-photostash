@@ -185,10 +185,11 @@ class @Browser
 					row.append(photographLink)
 				# Setup Fancybox
 				$(".fancybox").fancybox({
+					padding: 0,
 					type: 'image',
 					afterLoad: ->
 						originalImageLink = @.href.split("/resize")
-						@.title = '<a href="'+originalImageLink[0]+'">Download</a> '+@.title
+						@.title = '<a href="'+originalImageLink[0]+'" target="_blank">Download</a> '+@.title
 				})
 				return
 			, error: (jqXHR, textStatus, errorThrown) ->
