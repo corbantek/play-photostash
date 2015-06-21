@@ -13,11 +13,14 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 
 public class StoryDocument extends AbstractFileDocument implements RelateDocument {
 	private static final Pattern DATE_AND_DATE_RANGE_PATTERN = Pattern.compile("[0-1]\\d-[0-3]\\d-\\d\\d\\d\\d");
+	private static final Pattern MONTH_YEAR_PATTERN = Pattern.compile("[A-Z][a-z]+\\s\\d\\d\\d\\d");
+	private static final Pattern MONTH_RANGE_YEAR_PATTER = Pattern.compile("[A-Z][a-z]+\\s-\\s[A-Z][a-z]+\\s\\d\\d\\d\\d");
 
-	public static final String COLLECTION = "storys";
+	public static final String COLLECTION = "stories";
 	public static final String RELATE_COLLECTION = "storyrelations";
 
 	private transient final SimpleDateFormat DATE_PARSER = new SimpleDateFormat("MM-dd-yyyy");
+	private transient final SimpleDateFormat MONTH_YEAR_PARSER = new SimpleDateFormat("MMMM yyyy");
 	private transient final SimpleDateFormat DATE_FORMATTER = new SimpleDateFormat("yyyyMMdd");
 
 	private String description;
@@ -69,6 +72,33 @@ public class StoryDocument extends AbstractFileDocument implements RelateDocumen
 				}
 			}
 			fileName = newFileName;
+		} else {
+			Matcher findMonthRangeYear = MONTH_RANGE_YEAR_PATTER.matcher(fileName);
+			if (findMonthRangeYear.find()) {
+				try {
+					String[] monthRangeYearSplit = findMonthRangeYear.group().split("\\s-\\s");
+					String year = monthRangeYearSplit[1].split("\\s")[1];
+					storyDate = MONTH_YEAR_PARSER.parse(monthRangeYearSplit[0] + " " + year).getTime();
+					storyEndDate = MONTH_YEAR_PARSER.parse(monthRangeYearSplit[1]).getTime();
+					fileName = fileName.substring(findMonthRangeYear.end());
+				} catch (ParseException e) {
+					/**
+					 * TODO Logging Message
+					 */
+				}
+			} else {
+				Matcher findMonthYear = MONTH_YEAR_PATTERN.matcher(fileName);
+				if (findMonthYear.find()) {
+					try {
+						storyDate = MONTH_YEAR_PARSER.parse(findMonthYear.group()).getTime();
+						fileName = fileName.substring(findMonthYear.end());
+					} catch (ParseException e) {
+						/**
+						 * TODO Logging Message
+						 */
+					}
+				}
+			}
 		}
 		String key = "";
 		if (storyDate != null) {

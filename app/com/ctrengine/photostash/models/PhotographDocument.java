@@ -19,6 +19,7 @@ import play.libs.Json;
 import com.drew.imaging.ImageMetadataReader;
 import com.drew.imaging.ImageProcessingException;
 import com.drew.metadata.Metadata;
+import com.drew.metadata.MetadataException;
 import com.drew.metadata.exif.ExifSubIFDDirectory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
@@ -31,6 +32,7 @@ public class PhotographDocument extends AbstractFileDocument implements RelateDo
 	private transient final SimpleDateFormat DATE_PARSER = new SimpleDateFormat("MM-dd-yyyy");
 	private transient final SimpleDateFormat OLD_DATETIME_PARSER = new SimpleDateFormat("MMddyyyy-HHmm");
 	private transient final SimpleDateFormat DATETIME_PARSER = new SimpleDateFormat("yyyyMMdd-HHmm");
+	private transient final SimpleDateFormat METADATA_DATE_PARSER = new SimpleDateFormat("yyyy:MM:dd HH:mm:ss");
 
 	private String description;
 	private String mimeType;
@@ -132,19 +134,15 @@ public class PhotographDocument extends AbstractFileDocument implements RelateDo
 				if (metadata != null) {
 					ExifSubIFDDirectory exifSubIFDDirectory = metadata.getFirstDirectoryOfType(ExifSubIFDDirectory.class);
 					if (exifSubIFDDirectory != null) {
-						Date date = exifSubIFDDirectory.getDate(ExifSubIFDDirectory.TAG_DATETIME_ORIGINAL);
+						String dateString = exifSubIFDDirectory.getString(ExifSubIFDDirectory.TAG_DATETIME_ORIGINAL);
+						Date date = METADATA_DATE_PARSER.parse(dateString);
 						if (date != null) {
-							/**
-							 * TODO Fix Time Zone Issues
-							 */
 							dateTaken = date.getTime();
 						}
 					}
 				}
-			} catch (ImageProcessingException | IOException e) {
-				/**
-				 * TODO: Log this
-				 */
+			} catch (ImageProcessingException | IOException | ParseException e) {
+				LOGGER.error("Exception reading date/time from Metadata: " + e.getMessage());
 			}
 		}
 
