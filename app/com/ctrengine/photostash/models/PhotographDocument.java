@@ -19,7 +19,6 @@ import play.libs.Json;
 import com.drew.imaging.ImageMetadataReader;
 import com.drew.imaging.ImageProcessingException;
 import com.drew.metadata.Metadata;
-import com.drew.metadata.MetadataException;
 import com.drew.metadata.exif.ExifSubIFDDirectory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
@@ -135,9 +134,11 @@ public class PhotographDocument extends AbstractFileDocument implements RelateDo
 					ExifSubIFDDirectory exifSubIFDDirectory = metadata.getFirstDirectoryOfType(ExifSubIFDDirectory.class);
 					if (exifSubIFDDirectory != null) {
 						String dateString = exifSubIFDDirectory.getString(ExifSubIFDDirectory.TAG_DATETIME_ORIGINAL);
-						Date date = METADATA_DATE_PARSER.parse(dateString);
-						if (date != null) {
-							dateTaken = date.getTime();
+						if (dateString != null && !dateString.isEmpty()) {
+							Date date = METADATA_DATE_PARSER.parse(dateString);
+							if (date != null) {
+								dateTaken = date.getTime();
+							}
 						}
 					}
 				}
