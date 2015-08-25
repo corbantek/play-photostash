@@ -1,4 +1,6 @@
 class @Browser
+	PHOTO_THUMBNAIL_SIZE = 360
+
 	constructor: ->
 		@breadcrumb = $('#photostash-breadcrumb')
 		@breadcrumbHome = $('#photostash-breadcrumb-home')
@@ -11,6 +13,7 @@ class @Browser
 		# Setup HTML5 Browser Buttons for Single Page
 		window.addEventListener("popstate", (event) =>
 			console.log(event)
+			$.fancybox.close()
 			if event.state?
 				if event.state.album?
 					if event.state.story?
@@ -127,6 +130,12 @@ class @Browser
 						storyLink.append($('<div class="caption">)').append($('<h5>').text(story.name))) 
 					storyCover.append(storyLink)
 					storyLink.click({album: singleAlbum, story: story}, (event) =>
+						$.ajax({
+							method: 'POST',
+							cache: false,
+							url: jsRoutesStoryController.com.ctrengine.photostash.controllers.api.StoryController.resizeStoryPhotographs(event.data.story.storyId, PHOTO_THUMBNAIL_SIZE).url,
+							dataType: 'json'
+						})
 						@displayPhotographs(event.data.album, event.data.story)
 						history.pushState({album: event.data.album, story: event.data.story}, null, '#storyId='+event.data.story.storyId)
 					)
@@ -181,7 +190,7 @@ class @Browser
 						title = "Taken: " + $.format.date(dateTaken, "MM.dd.yyyy HH:mm ") + " -- "+title
 					photographLink = $('<a href="'+photograph.link+'/image/resize/1024" rel="'+story.storyId+'" class="fancybox col-sm-4" title="'+title+'">')
 					#photographLink = $('<a href="'+photograph.link+'/image/resize/1024" rel="group" class="fancybox">')
-					photographLink.append($('<img src="'+photograph.link+'/image/resize/360" class="img-responsive img-thumbnail" style="max-width: 360px; max-height: 360px;">'))
+					photographLink.append($('<img src="'+photograph.link+'/image/resize/'+PHOTO_THUMBNAIL_SIZE+'" class="img-responsive img-thumbnail" style="max-width: 360px; max-height: 360px;">'))
 					row.append(photographLink)
 				# Setup Fancybox
 				$(".fancybox").fancybox({
