@@ -67,7 +67,7 @@ public class ShoeboxMessages {
 			this.photographDocument = photographDocument;
 		}
 
-		public PhotographDocument getPhotograph() {
+		public PhotographDocument getPhotographDocument() {
 			return photographDocument;
 		}
 	}

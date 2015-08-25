@@ -16,6 +16,7 @@ import javax.imageio.ImageIO;
 import org.imgscalr.Scalr;
 import org.imgscalr.Scalr.Method;
 
+import akka.actor.ActorRef;
 import akka.actor.UntypedActor;
 
 import com.arangodb.ErrorNums;
@@ -54,6 +55,13 @@ public class PhotographActor extends UntypedActor {
 			readPhotographFromDatabase((PhotographResizeRequestMessage) message);
 		} else {
 			unhandled(message);
+		}
+	}
+	
+	private void conditionalReplyToSender(Object message){
+		ActorRef sender = getSender(); 
+		if(sender != ActorRef.noSender()){
+			sender.tell(message, getSelf());
 		}
 	}
 
@@ -122,7 +130,7 @@ public class PhotographActor extends UntypedActor {
 	}
 
 	private void readPhotographFromDisk(PhotographRequestMessage photographRequestMessage) {
-		Path photographPath = Paths.get(photographRequestMessage.getPhotograph().getPath());
+		Path photographPath = Paths.get(photographRequestMessage.getPhotographDocument().getPath());
 		try {
 			byte[] photograph = Files.readAllBytes(photographPath);
 			String mimeType = Files.probeContentType(photographPath);
@@ -177,7 +185,7 @@ public class PhotographActor extends UntypedActor {
 
 			}
 			if (photographCacheDocument != null) {
-				getSender().tell(new PhotographResponseMessage(photographCacheDocument.getPhotograph(), photographDocument.getMimeType()), getSelf());
+				conditionalReplyToSender(new PhotographResponseMessage(photographCacheDocument.getPhotograph(), photographDocument.getMimeType()));
 				if (writeCacheDocument) {
 					/**
 					 * Save to Database
@@ -192,7 +200,7 @@ public class PhotographActor extends UntypedActor {
 				/**
 				 * TODO Need to remove photograph from database...
 				 */
-				getSender().tell(photographDocument.getName() + " could not be read or is not a resizable image format.", getSelf());
+				conditionalReplyToSender(photographDocument.getName() + " could not be read or is not a resizable image format.");
 			}
 		}
 	}

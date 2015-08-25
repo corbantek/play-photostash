@@ -68,8 +68,8 @@ public enum PhotostashDatabase {
 	private synchronized void createDatabaseDriver() {
 		ArangoConfigure arangoConfigure = new ArangoConfigure();
 		arangoConfigure.setArangoHost(new ArangoHost(DatabaseConfiguration.INSTANCE.getHost(), DatabaseConfiguration.INSTANCE.getPort()));
-		arangoConfigure.setMaxPerConnection(40);
-		arangoConfigure.setMaxTotalConnection(40);
+		arangoConfigure.setMaxPerConnection(50);
+		arangoConfigure.setMaxTotalConnection(50);
 		arangoConfigure.init();
 
 		try {

@@ -19,6 +19,8 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 public class PhotographController extends Controller {
+	private static final int PHOTOGRAPH_REQUEST_TIMEOUT = 30000;
+
 	public static Result getPhotographs(Boolean extended) {
 		try {
 			ArrayNode photographNode = Json.newObject().arrayNode();
@@ -65,7 +67,7 @@ public class PhotographController extends Controller {
 					}
 				});
 			} else {
-				return Promise.wrap(ask(Shoebox.INSTANCE.getPhotographRouter(), new PhotographRequestMessage(photographDocument), 10000)).map(new Function<Object, Result>() {
+				return Promise.wrap(ask(Shoebox.INSTANCE.getPhotographRouter(), new PhotographRequestMessage(photographDocument), PHOTOGRAPH_REQUEST_TIMEOUT)).map(new Function<Object, Result>() {
 					public Result apply(Object response) {
 						if (response instanceof PhotographResponseMessage) {
 							PhotographResponseMessage photographResponseMessage = (PhotographResponseMessage) response;
@@ -101,7 +103,7 @@ public class PhotographController extends Controller {
 				if (squareSize == null) {
 					return getPhotographImage(photographId);
 				} else {
-					return Promise.wrap(ask(Shoebox.INSTANCE.getPhotographRouter(), new PhotographResizeRequestMessage(photographDocument, squareSize), 10000)).map(new Function<Object, Result>() {
+					return Promise.wrap(ask(Shoebox.INSTANCE.getPhotographRouter(), new PhotographResizeRequestMessage(photographDocument, squareSize), PHOTOGRAPH_REQUEST_TIMEOUT)).map(new Function<Object, Result>() {
 						public Result apply(Object response) {
 							if (response instanceof PhotographResponseMessage) {
 								PhotographResponseMessage photographResponseMessage = (PhotographResponseMessage) response;
