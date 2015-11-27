@@ -13,17 +13,20 @@ class @Browser
 		# Setup HTML5 Browser Buttons for Single Page
 		window.addEventListener("popstate", (event) =>
 			console.log(event)
-			$.fancybox.close()
-			if event.state?
-				if event.state.album?
-					if event.state.story?
-						@displayPhotographs(event.state.album, event.state.story)
+			if $.fancybox.isOpen
+				history.forward()
+				$.fancybox.close()
+			else
+				if event.state?
+					if event.state.album?
+						if event.state.story?
+							@displayPhotographs(event.state.album, event.state.story)
+						else
+							@displayStories(event.state.album)
 					else
-						@displayStories(event.state.album)
+						@displayAlbums()
 				else
 					@displayAlbums()
-			else
-				@displayAlbums()
 			return
 		)
 
@@ -198,6 +201,9 @@ class @Browser
 					type: 'image',
 					afterLoad: ->
 						originalImageLink = @.href.split("/resize")
+						#photographUrlSplit = originalImageLink[0].split("/image")[0].split("/")
+						#photograph = photographUrlSplit[photographUrlSplit.length-1]
+						#{}history.pushState({photograph: photograph}, null, '#photographId='+photograph)
 						@.title = '<a href="'+originalImageLink[0]+'" target="_blank">Download</a> '+@.title
 				})
 				return
@@ -205,5 +211,3 @@ class @Browser
 				return
 		})
 		return
-
-
