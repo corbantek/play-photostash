@@ -115,6 +115,14 @@ public class StoryDocument extends AbstractFileDocument implements RelateDocumen
 		return description;
 	}
 
+	public Long getStoryDate() {
+		return storyDate;
+	}
+
+	public Long getStoryEndDate() {
+		return storyEndDate;
+	}
+
 	public String getCoverPhotographKey() {
 		return coverPhotographKey;
 	}
@@ -144,6 +152,9 @@ public class StoryDocument extends AbstractFileDocument implements RelateDocumen
 		}
 		if (getDescription() != null) {
 			storyNodeExtended.put("description", getDescription());
+		}
+		if (getStoryDate() != null) {
+			storyNodeExtended.put("storyDate", getStoryDate());
 		}
 		return storyNodeExtended;
 	}

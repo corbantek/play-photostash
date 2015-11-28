@@ -124,6 +124,8 @@ public class StoryController extends Controller {
 		 * Routes
 		 */
 		com.ctrengine.photostash.controllers.api.routes.javascript.StoryController.getStories(),
+		
+		com.ctrengine.photostash.controllers.api.routes.javascript.StoryController.getRecentStories(),
 
 		com.ctrengine.photostash.controllers.api.routes.javascript.StoryController.getStory(),
 		

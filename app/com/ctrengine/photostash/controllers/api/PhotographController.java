@@ -4,6 +4,7 @@ import static akka.pattern.Patterns.ask;
 import play.libs.F.Function;
 import play.libs.F.Function0;
 import play.libs.F.Promise;
+import play.Routes;
 import play.libs.Json;
 import play.mvc.Controller;
 import play.mvc.Result;
@@ -124,5 +125,20 @@ public class PhotographController extends Controller {
 			});
 
 		}
+	}
+	
+	public static Result javascriptRoutes() {
+		response().setContentType("text/javascript");
+		return ok(Routes.javascriptRouter("jsRoutesPhotographController",
+		/**
+		 * Routes
+		 */
+		com.ctrengine.photostash.controllers.api.routes.javascript.PhotographController.getPhotograph(),
+		
+		com.ctrengine.photostash.controllers.api.routes.javascript.PhotographController.getPhotographs(),
+
+		com.ctrengine.photostash.controllers.api.routes.javascript.PhotographController.getPhotographImage(),
+		
+		com.ctrengine.photostash.controllers.api.routes.javascript.PhotographController.getPhotographResizeImage()));
 	}
 }
