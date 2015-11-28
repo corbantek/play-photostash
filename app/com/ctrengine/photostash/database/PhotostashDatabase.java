@@ -163,6 +163,10 @@ public enum PhotostashDatabase {
 	public List<StoryDocument> getStories() throws DatabaseException {
 		return getDocuments(StoryDocument.COLLECTION, StoryDocument.class);
 	}
+	
+	public List<StoryDocument> getRecentStories(int size) throws DatabaseException {
+		return getRecentDocuments(StoryDocument.COLLECTION, StoryDocument.class, size, "storyDate");
+	}
 
 	public StoryDocument findStory(String path) throws DatabaseException {
 		return findPathDocument(StoryDocument.COLLECTION, path, StoryDocument.class);
@@ -253,10 +257,28 @@ public enum PhotostashDatabase {
 	}
 
 	private <D extends Document> List<D> getDocuments(String collection, Class<D> clazz) throws DatabaseException {
+		return getDocuments(collection, clazz, 0);
+	}
+	
+	private <D extends Document> List<D> getDocuments(String collection, Class<D> clazz, int size) throws DatabaseException {
 		verifyDatabaseDriver();
 		try {
-			List<D> documentList = photostashArangoDriver.executeSimpleAllDocuments(collection, 0, 0, clazz).asEntityList();
+			List<D> documentList = photostashArangoDriver.executeSimpleAllDocuments(collection, 0, size, clazz).asEntityList();
 			Collections.sort(documentList);
+			return documentList;
+		} catch (ArangoException e) {
+			throw new DatabaseException(e);
+		}
+	}
+	
+	private <D extends Document> List<D> getRecentDocuments(String collection, Class<D> clazz, int size, String sortField) throws DatabaseException {
+		verifyDatabaseDriver();
+		verifyDatabaseDriver();
+		final String QUERY_SORT_LIMIT = "FOR a IN " + collection + " SORT "+collection+".@sortField DESC LIMIT @limit RETURN a";
+		try {
+			Map<String, Object> bindVars = new MapBuilder().put("sortField", sortField).put("limit", size).get();
+			List<D> documentList = photostashArangoDriver.executeDocumentQuery(QUERY_SORT_LIMIT, bindVars, photostashArangoDriver.getDefaultAqlQueryOptions(), clazz).asEntityList();
+			Collections.reverse(documentList);
 			return documentList;
 		} catch (ArangoException e) {
 			throw new DatabaseException(e);

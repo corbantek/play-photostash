@@ -29,6 +29,18 @@ public class StoryController extends Controller {
 			return internalServerError(Json.newObject().put("message", e.getMessage()));
 		}
 	}
+	
+	public static Result getRecentStories(int size, Boolean extended) {
+		try {
+			ArrayNode storysNode = Json.newObject().arrayNode();
+			for (StoryDocument storyDocument : PhotostashDatabase.INSTANCE.getRecentStories(size)) {
+				storysNode.add(storyDocument.toJson(extended).put("link", routes.StoryController.getStory(storyDocument.getKey(), extended).absoluteURL(request())));
+			}
+			return ok(storysNode);
+		} catch (DatabaseException e) {
+			return internalServerError(Json.newObject().put("message", e.getMessage()));
+		}
+	}
 
 	public static Result getStory(String storyId, Boolean extended) {
 		try {

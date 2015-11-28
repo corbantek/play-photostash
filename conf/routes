@@ -28,6 +28,7 @@ GET		/v1/api/photo/:photographId														com.ctrengine.photostash.controlle
 GET		/v1/api/photo																	com.ctrengine.photostash.controllers.api.PhotographController.getPhotographs(extended: Boolean ?= false)
 GET		/v1/api/story/:storyId/thumbnail												com.ctrengine.photostash.controllers.api.StoryController.getStoryThumbnail(storyId: String, extended: Boolean ?= false)
 POST	/v1/api/story/:storyId/resize/:squareSize										com.ctrengine.photostash.controllers.api.StoryController.resizeStoryPhotographs(storyId: String, squareSize: Integer)
+GET		/v1/api/story/:size																com.ctrengine.photostash.controllers.api.StoryController.getRecentStories(size: Int, extended: Boolean ?= false)													
 GET		/v1/api/story/:storyId															com.ctrengine.photostash.controllers.api.StoryController.getStory(storyId: String, extended: Boolean ?= false)
 GET		/v1/api/story																	com.ctrengine.photostash.controllers.api.StoryController.getStories(extended: Boolean ?= false)
 GET		/v1/api/album/:albumId															com.ctrengine.photostash.controllers.api.AlbumController.getAlbum(albumId: String, extended: Boolean ?= false)
