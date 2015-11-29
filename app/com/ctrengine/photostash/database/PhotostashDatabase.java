@@ -278,7 +278,10 @@ public enum PhotostashDatabase {
 		try {
 			Map<String, Object> bindVars = new MapBuilder().put("sortField", sortField).put("limit", size).get();
 			List<D> documentList = photostashArangoDriver.executeDocumentQuery(QUERY_SORT_LIMIT, bindVars, photostashArangoDriver.getDefaultAqlQueryOptions(), clazz).asEntityList();
-			Collections.reverse(documentList);
+			/**
+			 * For now lets NOT reverse the order back to ASC
+			 * Collections.reverse(documentList);
+			 */
 			return documentList;
 		} catch (ArangoException e) {
 			throw new DatabaseException(e);
