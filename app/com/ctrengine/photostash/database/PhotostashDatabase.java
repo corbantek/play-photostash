@@ -274,7 +274,7 @@ public enum PhotostashDatabase {
 	private <D extends Document> List<D> getRecentDocuments(String collection, Class<D> clazz, int size, String sortField) throws DatabaseException {
 		verifyDatabaseDriver();
 		verifyDatabaseDriver();
-		final String QUERY_SORT_LIMIT = "FOR a IN " + collection + " SORT "+collection+".@sortField DESC LIMIT @limit RETURN a";
+		final String QUERY_SORT_LIMIT = "FOR a IN " + collection + " SORT a.@sortField DESC LIMIT @limit RETURN a";
 		try {
 			Map<String, Object> bindVars = new MapBuilder().put("sortField", sortField).put("limit", size).get();
 			List<D> documentList = photostashArangoDriver.executeDocumentQuery(QUERY_SORT_LIMIT, bindVars, photostashArangoDriver.getDefaultAqlQueryOptions(), clazz).asEntityList();
